@@ -1,28 +1,33 @@
-# Cudy Router integration for Home Assistant
+# Cudy Router Integration for Home Assistant (AC1200 Optimized)
 
-This is a custom integration for Cudy routers, specifically adapted for the **Cudy AC1200 (WR1200)** model.
+This is an enhanced custom integration for Cudy routers, specifically optimized and tested for the **Cudy AC1200 (WR1200)** model. 
 
-It is based on the original integration for LT18/WR3600 but has been modified to parse the different HTML structure used by the AC1200 firmware.
+While based on original work for the WR3600, this version features a completely rewritten `parser.py` to handle the specific HTML structure of AC1200 firmware and introduces several new dedicated sensors for better network monitoring.
 
-## Features
+## 🚀 Enhanced Features & Sensors
 
-This integration logs in to the router's web administration interface and scrapes status data.
+Beyond basic device tracking, this integration now provides dedicated entities for comprehensive network analysis:
 
-- **Connected Devices:** Tracks the number of connected clients.
-- **Device Tracker:** Creates `device_tracker` entities for connected devices (based on MAC address).
-- **Bandwidth Monitoring:**
-  - Real-time download/upload speed per device.
-  - Total router download/upload speed.
-  - Identifies top bandwidth users (Top Downloader/Uploader sensors).
-- **Connection Details:** attributes showing connection type (Wired, 2.4G WiFi, 5G WiFi) and signal strength (for wireless clients).
+### **Network Performance**
+* **Download Speed:** `sensor.download_speed` — Real-time aggregate download throughput.
+* **Upload Speed:** `sensor.upload_speed` — Real-time aggregate upload throughput.
+* **Total Data:** `sensor.download_total` & `sensor.upload_total` — Accumulative data counters since last router reboot.
 
-*Note: As the AC1200 is a standard Wi-Fi router (not an LTE modem), cellular sensors (SIM, 4G Signal, Bands) are not available.*
+### **Traffic Analysis**
+* **Top Downloader:** `sensor.top_downloader` — Identifies the device (Hostname or IP) currently consuming the most download bandwidth.
+* **Top Uploader:** `sensor.top_uploader` — Identifies the device currently consuming the most upload bandwidth.
+* **Device Count:** `sensor.device_count` — A numeric sensor showing the total number of currently connected clients.
 
-## Installation
+### **System Health & Info**
+* **Uptime:** `sensor.connected_time` — How long the router has been running.
+* **Firmware & HW:** `sensor.firmware_version` and `sensor.hardware_version` for easy version tracking.
+* **IP Info:** `sensor.lan_ip_address` — Monitoring the local gateway address.
 
-1. Go to your Home Assistant `config/custom_components` directory.
+## 🛠 Installation
+
+1. Open your Home Assistant `config/custom_components` directory.
 2. Create a folder named `cudy_router`.
-3. Copy all the files from this repository into that folder.
+3. Copy all files from this repository into that folder.
    - The structure should look like:
      ```
      custom_components/
@@ -40,22 +45,28 @@ This integration logs in to the router's web administration interface and scrape
          translations/
            en.json
      ```
-4. Restart Home Assistant.
+4. **Restart Home Assistant.**
 
-## Configuration
+## ⚙️ Configuration
 
 1. Navigate to **Settings** -> **Devices & Services**.
 2. Click **Add Integration**.
 3. Search for **Cudy Router**.
-4. Enter the router's IP address (e.g., `192.168.10.1`), username (usually `admin`), and password.
-5. (Optional) In the configuration options, you can specify a list of MAC addresses to track specifically or adjust the update interval.
+4. Enter the router's IP address (default: `192.168.10.1`), username (`admin`), and password.
+5. The integration will automatically discover the router and populate all sensors.
 
-## Troubleshooting
+## 📋 Data Attributes
+The `sensor.connected_devices` entity stores a full JSON list of clients in its attributes, allowing for advanced dashboarding (Markdown/Flex-Table):
+* `hostname`: The name assigned to the device.
+* `ip`: Current local IP address.
+* `mac`: Unique hardware address.
+* `connection`: Connection type (`wired` or `wireless`).
+* `signal`: Wireless signal strength percentage.
+* `online_time`: Session duration.
 
-- **"Unknown" Device Names:** If the router doesn't provide a hostname, the integration falls back to displaying the IP address.
-- **Speed 0.00 Mbit/s:** This indicates the router is reporting zero traffic for that device at the moment of the scan. Try downloading a large file to test.
+## ⚠️ Notes for AC1200 Users
+The AC1200 model is a standard Wi-Fi router. Therefore, LTE-specific sensors (SIM status, 4G signal strength, Cell bands) are intentionally disabled or unavailable to keep your entity list clean.
 
 ## Credits
-
-Based on the work of [armendkadrija](https://github.com/armendkadrija/hass-cudy-router-wr3600) and other contributors.
-Modified for Cudy AC1200 HTML parsing compatibility.
+Based on the original work by [armendkadrija](https://github.com/armendkadrija/hass-cudy-router-wr3600).
+Optimized for AC1200 HTML parsing and extended sensor support.
