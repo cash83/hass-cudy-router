@@ -144,8 +144,11 @@ def _parse_ac1200_style(soup: BeautifulSoup) -> list[dict]:
                 if len(parts) >= 1: ip = clean(parts[0])
                 if len(parts) >= 2: mac = clean(parts[1])
             
-            hostname = _get_clean_text(row.find("div", id=re.compile(r"-hostnamexs$")))
-            if not hostname or "Unknown" in hostname: hostname = ip
+            hostname_raw = _get_clean_text(row.find("div", id=re.compile(r"-hostnamexs$")))
+            if not hostname_raw or "Unknown" in hostname_raw:
+                hostname = ip
+            else:
+                hostname = hostname_raw
 
             speed_div = row.find("div", id=re.compile(r"-speed$"))
             up_s, down_s = "0", "0"
