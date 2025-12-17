@@ -56,12 +56,20 @@ To create a clean list of wireless devices (filtering out wired ones and avoidin
 
 ```yaml
 type: markdown
-content: |-
+content: >-
   | Zařízení (IP) | Typ | Signál | Čas |
+
   | :--- | :--- | :--- | :--- |
-  {% for device in state_attr('sensor.connected_devices', 'devices') -%}
-    {%- if device.connection != 'Wired' -%}
-    | **{{ device.hostname }}** | {{ device.connection }} | {{ device.signal }} | {{ device.online_time }} |
+
+  {% for device in state_attr('sensor.cudy_192_168_2_91_connected_devices_list',
+  'devices') -%}
+    {%- if device.connection != 'WIRED' -%}
+    {%- set sig = device.signal | replace(' dBm', '') | int(0) -%}
+    {%- if sig <= -85 %}{% set icon = '🔴' -%}
+    {%- elif sig <= -75 %}{% set icon = '🟠' -%}
+    {%- elif sig <= -65 %}{% set icon = '🟡' -%}
+    {%- else %}{% set icon = '🟢' %}{% endif -%}
+    | **{{ device.hostname }}** | {{ device.connection }} | {{ icon }} {{ device.signal }} | {{ device.online_time }} |
     {% endif -%}
   {%- endfor %}
 title: Cudy AP Kidsroom
