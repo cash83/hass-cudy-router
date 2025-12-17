@@ -10,56 +10,60 @@ from .const import SECTION_DETAILED, MODULE_LAN, MODULE_BANDWIDTH, MODULE_SYSTEM
 _LOGGER = logging.getLogger(__name__)
 
 def _get_clean_text(element) -> str:
-    """Pomocná funkce pro odstranění duplicitního textu (pro mobilní/desktop zobrazení)."""
+    """Pomocná funkce pro odstranění duplicitního textu."""
     if element is None:
         return "Unknown"
-    
     p_tag = element.find("p")
     text = p_tag.get_text(strip=True) if p_tag else element.get_text(strip=True)
-
     if not text:
         return "Unknown"
-
     if len(text) > 1 and len(text) % 2 == 0:
         mid = len(text) // 2
         if text[:mid] == text[mid:]:
             return text[:mid]
-            
     return text
 
 def parse_speed(input_string: str) -> float:
-    """Parses transfer speed string (universal)."""
+    """Parses transfer speed string and ALWAYS returns it in Mbps."""
     if not input_string:
         return 0.0
         
+    # Odstranění duplicitního textu (mobilní bug u Cudy)
     if len(input_string) > 1 and len(input_string) % 2 == 0:
         mid = len(input_string) // 2
         if input_string[:mid] == input_string[mid:]:
             input_string = input_string[:mid]
 
-    match = re.search(r"(\d+(?:\.\d+)?)\s*([kKmMgG]?bps)", input_string, re.IGNORECASE)
+    # Regex najde číslo a jednotku (kbps, mbps, b/s, kb/s atd.)
+    match = re.search(r"(\d+(?:\.\d+)?)\s*([kKmMgG]?)([bB])(?:ps|/s)?", input_string, re.IGNORECASE)
     if match:
         try:
             value = float(match.group(1))
-            unit = match.group(2).lower()
-            if "mbps" in unit: return value
-            if "gbps" in unit: return value * 1024
-            if "kbps" in unit: return round(value / 1024, 2)
-            if "bps" in unit: return round(value / 1024 / 1024, 2)
+            prefix = match.group(2).lower()
+            unit_is_byte = match.group(3) == 'B' # 'B' = Byte, 'b' = bit
+            
+            # Převedeme vše na základní jednotku (bps nebo B/s)
+            if prefix == 'k': value *= 1000  # Pozor: u síťových rychlostí je k=1000, ne 1024
+            elif prefix == 'm': value *= 1000000
+            elif prefix == 'g': value *= 1000000000
+            
+            # Pokud jsou to Bajty (B/s), převedeme na bity (bps)
+            if unit_is_byte:
+                value *= 8
+                
+            # Výsledek chceme v Mbps (vydělíme milionem)
+            return round(value / 1000000.0, 2)
         except ValueError:
             pass
     return 0.0
 
 def parse_lan_info(input_html: str) -> dict[str, Any]:
-    """Parses LAN status table from HTML."""
     if not input_html: return {}
     soup = BeautifulSoup(input_html, "html.parser")
     data = {}
-    
     def get_text_by_id(element_id):
         div = soup.find("div", id=element_id)
         return _get_clean_text(div)
-
     data["ip_address"] = get_text_by_id("cbi-table-1-data")
     data["subnet_mask"] = get_text_by_id("cbi-table-2-data")
     data["gateway"] = get_text_by_id("cbi-table-3-data")
@@ -68,10 +72,8 @@ def parse_lan_info(input_html: str) -> dict[str, Any]:
     return data
 
 def parse_system_info(input_html: str) -> dict[str, Any]:
-    """Parses Firmware and Hardware version from footer spans."""
     data = {"firmware": "Unknown", "hardware": "Unknown"}
     if not input_html: return data
-    
     soup = BeautifulSoup(input_html, "html.parser")
     for span in soup.find_all("span"):
         text = span.get_text(strip=True)
@@ -79,69 +81,61 @@ def parse_system_info(input_html: str) -> dict[str, Any]:
             data["hardware"] = text.replace("HW:", "").replace("|", "").strip()
         elif "FW:" in text:
             data["firmware"] = text.replace("FW:", "").replace("|", "").strip()
-            
     return data
 
-def parse_bandwidth_json(json_data: list) -> dict[str, Any]:
-    """
-    Automaticky detekuje, zda router posílá Bajty (AC1200) nebo Kilobity/Packety (AX3000).
-    """
+def parse_bandwidth_json(json_data: list, hw_version: str = "") -> dict[str, Any]:
     if not json_data or len(json_data) < 2:
         return {"upload_mbps": 0.0, "download_mbps": 0.0, "upload_total_gb": 0.0, "download_total_gb": 0.0}
     
     try:
         last, prev = json_data[-1], json_data[-2]
-        
-        # Časová delta v sekundách (z mikrosekund)
         delta_t = (last[0] - prev[0]) / 1000000.0
         if delta_t <= 0: delta_t = 1.0
 
-        # Indexy 3 (RX) a 4 (TX)
-        raw_rx_diff = last[3] - prev[3]
-        raw_tx_diff = last[4] - prev[4]
+        is_ax = "WR3000" in (hw_version or "")
 
-        # DETEKCE MĚŘÍTKA:
-        # Pokud je nárůst při stahování podezřele malý (pod 100k za sekundu), 
-        # předpokládáme, že AX3000 posílá už kbit/s nebo packety a ne bajty.
-        if (raw_rx_diff / delta_t) < 100000:
-            # Režim AX3000: Hodnoty v JSONu jsou pravděpodobně už v kbit
-            rx_mbps = round((raw_rx_diff / delta_t) / 128.0, 2) # kbit -> mbit (přibližně)
-            tx_mbps = round((raw_tx_diff / delta_t) / 128.0, 2)
+        if is_ax:
+            # AX3000: Data v JSONu jsou u eth0 velmi podhodnocená (PPE offload)
+            # Rozdíl 3000 při 550Mbps znamená, že 1 jednotka = cca 183 Kbit
+            raw_rx_diff = last[3] - prev[3]
+            raw_tx_diff = last[4] - prev[4]
             
-            # Pokud i tak vychází 0.02 při 200mbit, zkusíme agresivní násobení 1000x
-            if rx_mbps < 1.0 and raw_rx_diff > 0:
-                rx_mbps = round((raw_rx_diff / delta_t) / 0.128, 2)
-                tx_mbps = round((raw_tx_diff / delta_t) / 0.128, 2)
+            # Přepočet: (diff * 8 * korekce) / (čas * 1000) -> Mbps
+            # Korekce 45-50 se zdá být u WR3000 standardní pro zobrazení PPE provozu
+            rx_mbps = round((raw_rx_diff * 8 * 45) / (delta_t * 1000), 2)
+            tx_mbps = round((raw_tx_diff * 8 * 45) / (delta_t * 1000), 2)
+            
+            # Totals v GB (předpokládáme, že total čítač v JSONu odpovídá MB)
+            total_rx_gb = round(last[3] / 1024, 2)
+            total_tx_gb = round(last[4] / 1024, 2)
         else:
-            # Režim AC1200: Standardní bajty
+            # AC1200: Čisté Bajty
+            raw_rx_diff = last[1] - prev[1]
+            raw_tx_diff = last[3] - prev[3]
             rx_mbps = round((raw_rx_diff * 8) / (delta_t * 1000000.0), 2)
             tx_mbps = round((raw_tx_diff * 8) / (delta_t * 1000000.0), 2)
+            total_rx_gb = round(last[1] / (1024**3), 2)
+            total_tx_gb = round(last[3] / (1024**3), 2)
 
         return {
             "download_mbps": max(0.0, rx_mbps),
             "upload_mbps": max(0.0, tx_mbps),
-            "download_total_gb": round(last[3] / (1024**3), 2) if raw_rx_diff > 100000 else round(last[3]/1000, 2),
-            "upload_total_gb": round(last[4] / (1024**3), 2) if raw_rx_diff > 100000 else round(last[4]/1000, 2)
+            "download_total_gb": max(0.0, total_rx_gb),
+            "upload_total_gb": max(0.0, total_tx_gb)
         }
-    except:
+    except Exception:
         return {"upload_mbps": 0.0, "download_mbps": 0.0, "upload_total_gb": 0.0, "download_total_gb": 0.0}
 
 def _parse_ac1200_style(soup: BeautifulSoup) -> list[dict]:
-    """Parser logic for devices."""
     devices = []
-    for br in soup.find_all("br"):
-        br.replace_with("\n")
-
+    for br in soup.find_all("br"): br.replace_with("\n")
     rows = soup.find_all("tr", id=re.compile(r"^cbi-table-\d+"))
     for row in rows:
         try:
-            ip = "Unknown"
-            mac = "Unknown"
-            
+            ip, mac = "Unknown", "Unknown"
             ipmac_div = row.find("div", id=re.compile(r"-ipmac$"))
             if ipmac_div:
-                text = ipmac_div.get_text(strip=True, separator="\n")
-                parts = text.split("\n")
+                parts = ipmac_div.get_text(strip=True, separator="\n").split("\n")
                 def clean(s):
                     s = s.strip()
                     if len(s) > 1 and len(s) % 2 == 0 and s[:len(s)//2] == s[len(s)//2:]:
@@ -149,113 +143,52 @@ def _parse_ac1200_style(soup: BeautifulSoup) -> list[dict]:
                     return s
                 if len(parts) >= 1: ip = clean(parts[0])
                 if len(parts) >= 2: mac = clean(parts[1])
-
-            hostname = _get_clean_text(row.find("div", id=re.compile(r"-hostnamexs$")))
             
-            # OPRAVA: Pokud je hostname "Unknown" nebo obsahuje "Unknown", použijeme jen IP
-            if not hostname or hostname == "Unknown" or "Unknown" in hostname:
-                hostname = ip
+            hostname = _get_clean_text(row.find("div", id=re.compile(r"-hostnamexs$")))
+            if not hostname or "Unknown" in hostname: hostname = ip
 
             speed_div = row.find("div", id=re.compile(r"-speed$"))
             up_s, down_s = "0", "0"
             if speed_div:
                 s_parts = speed_div.get_text(strip=True, separator="\n").split("\n")
-                if len(s_parts) >= 2:
-                    up_s, down_s = s_parts[0], s_parts[1]
+                if len(s_parts) >= 2: up_s, down_s = s_parts[0], s_parts[1]
 
             devices.append({
                 "hostname": hostname, "ip": ip, "mac": mac,
-                "up_speed": parse_speed(up_s),
-                "down_speed": parse_speed(down_s),
+                "up_speed": parse_speed(up_s), "down_speed": parse_speed(down_s),
                 "signal": _get_clean_text(row.find("div", id=re.compile(r"-signal$"))),
                 "online": _get_clean_text(row.find("div", id=re.compile(r"-online$"))),
                 "connection": _get_clean_text(row.find("div", id=re.compile(r"-iface$"))),
             })
-        except Exception: continue
+        except: continue
     return devices
 
-def get_all_devices(input_html: str) -> list[dict[str, Any]]:
-    if not input_html: return []
-    soup = BeautifulSoup(input_html, "html.parser")
-    return _parse_ac1200_style(soup)
-
 def parse_devices(input_html: str, device_list_str: str, previous_devices: dict[str, Any] = None) -> dict[str, Any]:
-    devices = get_all_devices(input_html)
+    soup = BeautifulSoup(input_html, "html.parser")
+    devices = _parse_ac1200_style(soup)
     data = {"device_count": {"value": len(devices)}}
-    
-    def time_to_minutes(time_str):
-        if not time_str or time_str == "Unknown" or time_str == "---": return 999999
-        try:
-            parts = time_str.split(":")
-            if len(parts) == 3: return int(parts[0]) * 60 + int(parts[1])
-            if len(parts) == 2: return int(parts[0])
-        except (ValueError, IndexError): pass
-        return 999999
-    
-    devices.sort(key=lambda d: time_to_minutes(d.get("online", "---")))
     
     all_devs = []
     for d in devices:
         all_devs.append({
-            "hostname": d["hostname"],
-            "ip": d["ip"],
-            "mac": d["mac"],
-            "upload_speed": d["up_speed"],
-            "download_speed": d["down_speed"],
-            "signal": d["signal"],
-            "online_time": d["online"],
-            "connection": d["connection"],
+            "hostname": d["hostname"], "ip": d["ip"], "mac": d["mac"],
+            "upload_speed": d["up_speed"], "download_speed": d["down_speed"],
+            "signal": d["signal"], "online_time": d["online"], "connection": d["connection"],
         })
     
     data["connected_devices"] = {
         "value": len(devices), 
-        "attributes": {
-            "devices": all_devs,
-            "device_count": len(devices),
-            "last_updated": datetime.now().isoformat(),
-        }
+        "attributes": {"devices": all_devs, "device_count": len(devices), "last_updated": datetime.now().isoformat()}
     }
     
     if devices:
         top_down = max(devices, key=lambda i: i.get("down_speed", 0))
         data["top_downloader_speed"] = {"value": top_down.get("down_speed")}
-        data["top_downloader_mac"] = {"value": top_down.get("mac")}
         data["top_downloader_hostname"] = {"value": top_down.get("hostname")}
-        
         top_up = max(devices, key=lambda i: i.get("up_speed", 0))
         data["top_uploader_speed"] = {"value": top_up.get("up_speed")}
-        data["top_uploader_mac"] = {"value": top_up.get("mac")}
         data["top_uploader_hostname"] = {"value": top_up.get("hostname")}
-
-        data[SECTION_DETAILED] = {}
-        device_list = [x.strip() for x in (device_list_str or "").split(",")]
-        now_ts = datetime.now().timestamp()
-        previous_detailed = (previous_devices or {}).get(SECTION_DETAILED, {}) if previous_devices else {}
-        
-        for device in devices:
-            key = device.get("mac")
-            if key not in device_list and device.get("hostname") in device_list:
-                key = device.get("hostname")
-
-            if key and key in device_list:
-                prev = previous_detailed.get(key, {})
-                device["last_seen"] = now_ts
-                if prev.get("last_seen") and prev["last_seen"] > device["last_seen"]:
-                      device["last_seen"] = prev["last_seen"]
-                data[SECTION_DETAILED][key] = device
-                
-        for key in device_list:
-            if key not in data[SECTION_DETAILED] and key in previous_detailed:
-                data[SECTION_DETAILED][key] = previous_detailed[key]
-                
         data["total_down_speed"] = {"value": sum(d.get("down_speed", 0) for d in devices)}
         data["total_up_speed"] = {"value": sum(d.get("up_speed", 0) for d in devices)}
-    else:
-        data["top_downloader_speed"] = {"value": 0}
-        data["top_downloader_hostname"] = {"value": "None"}
-        data["top_uploader_speed"] = {"value": 0}
-        data["top_uploader_hostname"] = {"value": "None"}
-        data["total_down_speed"] = {"value": 0}
-        data["total_up_speed"] = {"value": 0}
-        
+    
     return data
