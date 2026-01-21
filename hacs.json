@@ -1,0 +1,8 @@
+{
+  "name": "Cudy Router",
+  "content_in_root": false,
+  "domain": "cudy_router",
+  "country": ["PL", "CZ", "DE", "EU"],
+  "homeassistant": "2024.6.0",
+  "iot_class": "local_polling"
+}
