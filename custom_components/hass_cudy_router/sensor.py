@@ -17,14 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import (
-    DOMAIN,
-    MODULE_DEVICES,
-    MODULE_LAN,
-    MODULE_MESH,
-    MODULE_SYSTEM,
-    MODULE_WAN,
-)
+from .const import *
 from .coordinator import CudyRouterDataUpdateCoordinator
 
 
@@ -41,154 +34,128 @@ class CudySensorEntityDescription(SensorEntityDescription):
 SENSOR_TYPES: tuple[CudySensorEntityDescription, ...] = (
     # ----- SYSTEM -----
     CudySensorEntityDescription(
-        key="firmware_version",
+        key=SENSOR_FIRMWARE_VERSION,
         name="Firmware Version",
         icon="mdi:chip",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_SYSTEM,
-        value_fn=lambda data: data.get("firmware"),
+        value_fn=lambda data: data.get(SENSOR_FIRMWARE_VERSION),
     ),
     CudySensorEntityDescription(
-        key="system_uptime",
+        key=SENSOR_SYSTEM_UPTIME,
         name="Connected Time",
         icon="mdi:clock-check",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_SYSTEM,
-        value_fn=lambda data: data.get("uptime"),
+        value_fn=lambda data: data.get(SENSOR_SYSTEM_UPTIME),
     ),
     # ----- MESH -----
     CudySensorEntityDescription(
-        key="mesh_network",
+        key=SENSOR_MESH_NETWORK,
         name="Mesh Network",
         icon="mdi:router-network-wireless",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_MESH,
-        value_fn=lambda data: data.get("mesh_network"),
+        value_fn=lambda data: data.get(SENSOR_MESH_NETWORK),
     ),
     CudySensorEntityDescription(
-        key="mesh_units",
+        key=SENSOR_MESH_UNITS,
         name="Mesh Units",
         icon="mdi:devices",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_SYSTEM,
-        value_fn=lambda data: (data.get("mesh_units") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_MESH_UNITS) or {}).get("value"),
     ),
     # ----- WAN -----
     CudySensorEntityDescription(
-        key="wan_public_ip",
+        key=SENSOR_WAN_PUBLIC_IP,
         name="WAN Public IP Address",
         icon="mdi:earth",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_WAN,
-        value_fn=lambda data: data.get("wan_public_ip"),
+        value_fn=lambda data: data.get(SENSOR_WAN_PUBLIC_IP),
     ),
     CudySensorEntityDescription(
-        key="wan_ip",
+        key=SENSOR_WAN_IP,
         name="WAN IP Address",
         icon="mdi:ip-network",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_WAN,
-        value_fn=lambda data: data.get("wan_ip"),
+        value_fn=lambda data: data.get(SENSOR_WAN_IP),
     ),
     CudySensorEntityDescription(
-        key="wan_dns",
+        key=SENSOR_WAN_DNS,
         name="WAN DNS Address(es)",
         icon="mdi:dns",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_WAN,
-        value_fn=lambda data: data.get("wan_dns"),
+        value_fn=lambda data: data.get(SENSOR_WAN_DNS),
     ),
     CudySensorEntityDescription(
-        key="wan_type",
+        key=SENSOR_WAN_TYPE,
         name="Connection Type",
         icon="mdi:transit-connection-variant",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_WAN,
-        value_fn=lambda data: data.get("wan_type"),
+        value_fn=lambda data: data.get(SENSOR_WAN_TYPE),
     ),
     CudySensorEntityDescription(
-        key="wan_uptime",
+        key=SENSOR_WAN_UPTIME,
         name="WAN Connected Time",
         icon="mdi:clock-check",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_WAN,
-        value_fn=lambda data: data.get("wan_uptime"),
-    ),
-    # Real-time throughput if your API returns it (Mbps)
-    # Expected keys:
-    #   coordinator.data[MODULE_WAN]["download_speed_mbps"] -> float
-    #   coordinator.data[MODULE_WAN]["upload_speed_mbps"] -> float
-    CudySensorEntityDescription(
-        key="wan_download_speed",
-        name="WAN Download Speed",
-        icon="mdi:download-network",
-        device_class=SensorDeviceClass.DATA_RATE,
-        native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        module=MODULE_WAN,
-        value_fn=lambda data: data.get("download_speed_mbps"),
-    ),
-    CudySensorEntityDescription(
-        key="wan_upload_speed",
-        name="WAN Upload Speed",
-        icon="mdi:upload-network",
-        device_class=SensorDeviceClass.DATA_RATE,
-        native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        module=MODULE_WAN,
-        value_fn=lambda data: data.get("upload_speed_mbps"),
+        value_fn=lambda data: data.get(SENSOR_WAN_UPTIME),
     ),
     # ----- LAN -----
     CudySensorEntityDescription(
-        key="lan_ip",
+        key=SENSOR_LAN_IP,
         name="LAN IP Address",
         icon="mdi:ip-network",
         entity_category=EntityCategory.DIAGNOSTIC,
         module=MODULE_LAN,
-        value_fn=lambda data: data.get("lan_ip"),
+        value_fn=lambda data: data.get(SENSOR_LAN_IP),
     ),
     # ----- DEVICES COUNTS -----
     CudySensorEntityDescription(
-        key="device_count",
+        key=SENSOR_DEVICE_COUNT,
         name="Total Devices Connected",
         icon="mdi:devices",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_DEVICES,
-        value_fn=lambda data: (data.get("device_count") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_DEVICE_COUNT) or {}).get("value"),
     ),
     CudySensorEntityDescription(
-        key="wifi_24_device_count",
+        key=SENSOR_WIFI_24_DEVICE_COUNT,
         name="2.4GHz WiFi Devices Connected",
         icon="mdi:wifi",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_DEVICES,
-        value_fn=lambda data: (data.get("wifi_24_device_count") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_WIFI_24_DEVICE_COUNT) or {}).get("value"),
     ),
     CudySensorEntityDescription(
-        key="wifi_5_device_count",
+        key=SENSOR_WIFI_5_DEVICE_COUNT,
         name="5GHz WiFi Devices Connected",
         icon="mdi:wifi",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_DEVICES,
-        value_fn=lambda data: (data.get("wifi_5_device_count") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_WIFI_5_DEVICE_COUNT) or {}).get("value"),
     ),
     CudySensorEntityDescription(
-        key="wired_device_count",
+        key=SENSOR_WIRED_DEVICE_COUNT,
         name="Wired Devices Connected",
         icon="mdi:lan",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_DEVICES,
-        value_fn=lambda data: (data.get("wired_device_count") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_WIRED_DEVICE_COUNT) or {}).get("value"),
     ),
     CudySensorEntityDescription(
-        key="mesh_device_count",
+        key=SENSOR_MESH_DEVICE_COUNT,
         name="Mesh Devices Connected",
         icon="mdi:router-network",
         state_class=SensorStateClass.MEASUREMENT,
         module=MODULE_DEVICES,
-        value_fn=lambda data: (data.get("mesh_device_count") or {}).get("value"),
+        value_fn=lambda data: (data.get(SENSOR_MESH_DEVICE_COUNT) or {}).get("value"),
     ),
 )
 

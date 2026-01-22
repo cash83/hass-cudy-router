@@ -4,6 +4,8 @@ import logging
 from typing import Any
 from bs4 import BeautifulSoup
 
+from custom_components.hass_cudy_router.const import *
+
 _LOGGER = logging.getLogger(__name__)
 _UP_RE = re.compile(r"↑\s*([\d.]+)\s*([A-Za-z/]+)")
 _DOWN_RE = re.compile(r"↓\s*([\d.]+)\s*([A-Za-z/]+)")
@@ -47,8 +49,8 @@ def parse_mesh_info(input_html: str) -> dict[str, Any]:
     return _parse_lines(
         input_html=input_html,
         keys={
-            "mesh_network": "Device Name",
-            "mesh_units": "Mesh Units",
+            SENSOR_MESH_NETWORK: "Device Name",
+            SENSOR_MESH_UNITS: "Mesh Units",
         }
     )
 
@@ -56,7 +58,7 @@ def parse_lan_info(input_html: str) -> dict[str, Any]:
     return _parse_lines(
         input_html=input_html,
         keys={
-            "lan_ip": "IP Address"
+            SENSOR_LAN_IP: "IP Address"
         }
     )
 
@@ -64,11 +66,11 @@ def parse_wan_info(input_html: str) -> dict[str, Any]:
     return _parse_lines(
         input_html=input_html,
         keys={
-            "wan_type": "Protocol",
-            "wan_ip": "IP Address",
-            "wan_uptime": "Connected Time",
-            "wan_public_ip": "Public IP",
-            "wan_dns": "DNS",
+            SENSOR_WAN_TYPE: "Protocol",
+            SENSOR_WAN_IP: "IP Address",
+            SENSOR_WAN_UPTIME: "Connected Time",
+            SENSOR_WAN_PUBLIC_IP: "Public IP",
+            SENSOR_WAN_DNS: "DNS",
         }
     )
 
@@ -76,18 +78,18 @@ def parse_devices(input_html: str) -> dict[str, Any]:
     data = _parse_lines(
         input_html=input_html,
         keys={
-            "device_count": "Devices",
-            "wifi_24_device_count": "2.4G WiFi",
-            "wifi_5_device_count": "5G WiFi",
-            "wired_device_count": "Wired",
-            "mesh_device_count": "Mesh",
+            SENSOR_DEVICE_COUNT: "Devices",
+            SENSOR_WIFI_24_DEVICE_COUNT: "2.4G WiFi",
+            SENSOR_WIFI_5_DEVICE_COUNT: "5G WiFi",
+            SENSOR_WIRED_DEVICE_COUNT: "Wired",
+            SENSOR_MESH_DEVICE_COUNT: "Mesh",
         }
     )
     soup = BeautifulSoup(input_html, "html.parser")
     text = soup.get_text()
     dc_match = re.search(r"Devices\s*([^\s|]+)", text)
     if dc_match:
-        data["device_count"] = dc_match.group(1).strip()
+        data[SENSOR_DEVICE_COUNT] = dc_match.group(1).strip()
     return data
 
 def parse_device_list(input_html: str) -> list[dict]:
@@ -164,15 +166,15 @@ def parse_device_list(input_html: str) -> list[dict]:
 
         data.append(
             {
-                "hostname": hostname,
-                "ip": ip,
-                "mac": mac,
-                "upload_speed": upload + upload_unit if upload is not None else "0.00Kbps",
-                "download_speed": download + download_unit if download is not None else "0.00Kbps",
-                "signal": signal,
-                "online_time": online,
-                "connection": internet_enabled,
-                "connection_type": conn_type,
+                DEVICE_HOSTNAME: hostname,
+                DEVICE_IP: ip,
+                DEVICE_MAC: mac,
+                DEVICE_UPLOAD_SPEED: upload + upload_unit if upload is not None else "0.00Kbps",
+                DEVICE_DOWNLOAD_SPEED: download + download_unit if download is not None else "0.00Kbps",
+                DEVICE_SIGNAL: signal,
+                DEVICE_ONLINE_TIME: online,
+                DEVICE_CONNECTION: internet_enabled,
+                DEVICE_CONNECTION_TYPE: conn_type,
             }
         )
 

@@ -5,7 +5,7 @@ import json
 import asyncio
 from datetime import datetime
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, ROOT)
 
 from custom_components.hass_cudy_router.router import CudyRouter
@@ -56,31 +56,6 @@ async def main():
         print("❌ Authentication failed, aborting")
         return
 
-    # ---- BASIC GETs ----
-    def check(url, expect_json=False):
-        print(f"\n➡️  GET {url}")
-        data = router.get(url)
-        if not data:
-            print("❌ Empty response")
-            return None
-        if expect_json:
-            try:
-                parsed = json.loads(data)
-                print("✅ JSON OK")
-                return parsed
-            except Exception as e:
-                print(f"❌ JSON parse error: {e}")
-                return None
-        print(f"✅ HTML length: {len(data)}")
-        return data
-
-    check("admin/system/wizard")
-    check("admin/network/mesh/status")
-    check("admin/network/lan/status")
-    check("admin/network/wan/status")
-    check("admin/network/devices/status")
-    check("admin/network/devices/devlist")
-
     # ---- FULL get_data() ----
     print("\n📦 Running get_data()")
     data = await router.get_data(hass, options={})
@@ -89,11 +64,17 @@ async def main():
     for key in [MODULE_SYSTEM, MODULE_LAN, MODULE_DEVICES]:
         value = data.get(key)
         if isinstance(value, dict):
-            print(f"{key}: {len(value)} keys")
+            print(f"Values for {key}: \n")
+            for dict_key, dict_value in value.items():
+                print(f"{dict_key}: {dict_value} \n")
+            print("_______________________________________ \n")
         elif isinstance(value, list):
-            print(f"{key}: {len(value)} items")
+            print(f"Values for {key}: \n")
+            for list_item in value:
+                print(f"{list_item} \n")
+            print("_______________________________________ \n")
         else:
-            print(f"{key}: {type(value)}")
+            print(f"Value for {key}: {value}")
 
     print("\n🕒 Finished at", datetime.now().isoformat())
 

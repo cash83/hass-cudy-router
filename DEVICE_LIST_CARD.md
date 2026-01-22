@@ -19,18 +19,19 @@ Each device in the list includes:
 - `download_speed`: Current download speed (Mbps)
 - `signal`: WiFi signal strength (for wireless devices)
 - `online_time`: How long the device has been online
-- `connection`: Connection type (wired/wireless)
+- `connection`: Device connected
+- `connection_type`: Connection type (wired/wireless/mesh)
 
 ## List Connected Devices
 
 ```yaml
 type: markdown
 content: >-
-  | Zařízení (IP) | Typ | Signál | Čas |
+  | Address | Typ | Signal | Time |
 
   | :--- | :--- | :--- | :--- |
 
-  {% for device in state_attr('sensor.cudy_192_168_2_91_connected_devices_list',
+  {% for device in state_attr('sensor.cudy_router_connected_devices_list',
   'devices') -%}
     {%- if device.connection != 'WIRED' -%}
     {%- set sig = device.signal | replace(' dBm', '') | int(0) -%}
@@ -38,22 +39,22 @@ content: >-
     {%- elif sig <= -75 %}{% set icon = '🟠' -%}
     {%- elif sig <= -65 %}{% set icon = '🟡' -%}
     {%- else %}{% set icon = '🟢' %}{% endif -%}
-    | **{{ device.hostname }}** | {{ device.connection }} | {{ icon }} {{ device.signal }} | {{ device.online_time }} |
+    | **{{ device.hostname }}** | {{ device.connection_type }} | {{ icon }} {{ device.signal }} | {{ device.online_time }} |
     {% endif -%}
   {%- endfor %}
-title: Cudy AP Kidsroom
+title: Cudy Router
 ```
 
 ```yaml
 type: markdown
 content: |-
-  | Zařízení (IP) | Typ | Signál | Čas |
+  | Address | Type | Signal | Time |
   | :--- | :--- | :--- | :--- |
   {% for device in state_attr('sensor.connected_devices', 'devices') -%}
-    | **{{ device.hostname }}** | {{ device.connection }} | {{ device.signal }} | {{ device.online_time }} |
+    | **{{ device.hostname }}** | {{ device.connection_type }} | {{ device.signal }} | {{ device.online_time }} |
     {% endif -%}
   {%- endfor %}
-title: Cudy AP Kidsroom
+title: Cudy Router
 ```
 
 ## ⭐ Recommended: Clean List with Icons
