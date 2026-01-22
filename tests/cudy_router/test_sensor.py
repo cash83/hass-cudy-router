@@ -38,9 +38,9 @@ def config_entry() -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         title="Test Cudy Router",
-        data={"host": "router.gdzi.es"},
+        data={"host": "192.169.0.1"},
         options={},
-        unique_id="router.gdzi.es",
+        unique_id="192.169.0.1",
     )
 
 

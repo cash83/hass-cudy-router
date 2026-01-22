@@ -1,6 +1,6 @@
 """Constants for the Cudy Router integration."""
 
-DOMAIN = "cudy_router"
+DOMAIN = "hass_cudy_router"
 
 MODULE_DEVICES = "devices"
 MODULE_MESH = "mesh"
