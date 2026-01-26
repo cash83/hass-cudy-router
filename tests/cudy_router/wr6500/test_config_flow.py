@@ -1,7 +1,7 @@
 """Tests for hass_cudy_router config flow."""
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant import data_entry_flow
@@ -28,8 +28,11 @@ async def test_config_flow_shows_form_on_init(hass):
 @pytest.mark.asyncio
 async def test_config_flow_success(hass):
     with patch(
-        "custom_components.hass_cudy_router.config_flow.CudyRouter.authenticate",
-        return_value=True,
+        "custom_components.hass_cudy_router.config_flow.CudyClient.authenticate",
+        new=AsyncMock(return_value=True),
+    ), patch(
+        "custom_components.hass_cudy_router.config_flow.CudyClient.close",
+        new=AsyncMock(return_value=None),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "user"}
@@ -52,8 +55,11 @@ async def test_config_flow_success(hass):
 @pytest.mark.asyncio
 async def test_config_flow_invalid_auth(hass):
     with patch(
-        "custom_components.hass_cudy_router.config_flow.CudyRouter.authenticate",
-        return_value=False,
+        "custom_components.hass_cudy_router.config_flow.CudyClient.authenticate",
+        new=AsyncMock(return_value=False),
+    ), patch(
+        "custom_components.hass_cudy_router.config_flow.CudyClient.close",
+        new=AsyncMock(return_value=None),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "user"}
@@ -76,8 +82,11 @@ async def test_config_flow_invalid_auth(hass):
 @pytest.mark.asyncio
 async def test_config_flow_cannot_connect(hass):
     with patch(
-        "custom_components.hass_cudy_router.config_flow.CudyRouter.authenticate",
-        side_effect=OSError("boom"),
+        "custom_components.hass_cudy_router.config_flow.CudyClient.authenticate",
+        new=AsyncMock(side_effect=OSError("boom")),
+    ), patch(
+        "custom_components.hass_cudy_router.config_flow.CudyClient.close",
+        new=AsyncMock(return_value=None),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "user"}
@@ -100,8 +109,11 @@ async def test_config_flow_cannot_connect(hass):
 @pytest.mark.asyncio
 async def test_config_flow_unknown_error(hass):
     with patch(
-        "custom_components.hass_cudy_router.config_flow.CudyRouter.authenticate",
-        side_effect=RuntimeError("unexpected"),
+        "custom_components.hass_cudy_router.config_flow.CudyClient.authenticate",
+        new=AsyncMock(side_effect=RuntimeError("unexpected")),
+    ), patch(
+        "custom_components.hass_cudy_router.config_flow.CudyClient.close",
+        new=AsyncMock(return_value=None),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "user"}
@@ -118,4 +130,4 @@ async def test_config_flow_unknown_error(hass):
         )
 
         assert result2["type"] == data_entry_flow.FlowResultType.FORM
-        assert result2["errors"]["base"] == "unknown"
+        assert result2["errors"]["base"] == "cannot_connect"

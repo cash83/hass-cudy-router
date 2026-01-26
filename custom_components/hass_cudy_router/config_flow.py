@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN, OPTIONS_DEVICELIST
-from .router import CudyRouter
+from .client import CudyClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,24 +42,33 @@ class CannotConnect(Exception):
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect."""
-    router = CudyRouter(
-        hass,
-        data[CONF_PROTOCOL],
-        data[CONF_HOST],
-        data[CONF_USERNAME],
-        data[CONF_PASSWORD],
-    )
+    """Validate the user input allows us to connect.
+
+    This will attempt to authenticate using the async CudyClient.
+    """
+    protocol = data.get(CONF_PROTOCOL, "http")
+    use_https = protocol.lower() in ("https", "ssl", "tls")
+    host = data[CONF_HOST]
+    username = data[CONF_USERNAME]
+    password = data[CONF_PASSWORD]
+
+    client = CudyClient(host=host, username=username, password=password, use_https=use_https)
 
     try:
-        ok = await hass.async_add_executor_job(router.authenticate)
-    except OSError as err:
+        ok = await client.authenticate()
+    except Exception as err:
+        _LOGGER.debug("Error while validating connection to %s: %s", host, err)
         raise CannotConnect from err
+    finally:
+        try:
+            await client.close()
+        except Exception:
+            pass
 
     if not ok:
         raise InvalidAuth
 
-    return {"title": f"Cudy Router ({data[CONF_HOST]})"}
+    return {"title": f"Cudy Router ({host})"}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -80,12 +89,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except Exception:
-                _LOGGER.exception("Unexpected exception")
+                _LOGGER.exception("Unexpected exception during config flow")
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(
-                    title=info["title"], data=user_input
-                )
+                return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(
             step_id="user",
