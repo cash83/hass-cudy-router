@@ -26,14 +26,17 @@
 
   "entity": {
     "sensor": {
-      "firmware_version": {
+      "system_firmware_version": {
         "name": "Wersja oprogramowania"
       },
-      "hardware": {
+      "system_hardware": {
         "name": "Hardware"
       },
       "system_uptime": {
         "name": "Czas działania"
+      },
+      "system_localtime": {
+        "name": "Czas lokalny"
       },
       "mesh_network": {
         "name": "Sieć mesh"
@@ -46,6 +49,9 @@
       },
       "wan_ip": {
         "name": "Adres IP WAN"
+      },
+      "wan_gateway": {
+        "name": "Brama WAN"
       },
       "wan_dns": {
         "name": "Adresy DNS WAN"
@@ -65,20 +71,50 @@
       "lan_ip": {
         "name": "Adres IP LAN"
       },
+      "lan_subnet": {
+        "name": "Podsieć LAN"
+      },
+      "lan_mac": {
+        "name": "Adres MAC"
+      },
       "device_count": {
         "name": "Łączna liczba podłączonych urządzeń"
       },
-      "wifi_24_device_count": {
+      "device_wifi_24_device_count": {
         "name": "Urządzenia Wi-Fi 2,4 GHz"
       },
-      "wifi_5_device_count": {
+      "device_wifi_5_device_count": {
         "name": "Urządzenia Wi-Fi 5 GHz"
       },
-      "wired_device_count": {
+      "device_wired_device_count": {
         "name": "Urządzenia przewodowe"
       },
-      "mesh_device_count": {
+      "device_mesh_device_count": {
         "name": "Urządzenia mesh"
+      },
+      "device_online": {
+        "name": "Urządzenia online"
+      },
+      "device_blocked": {
+        "name": "Urządzenia zablokowane"
+      },
+      "dhcp_ip_start": {
+        "name": "Początek zakresu adresów IP"
+      },
+      "dhcp_ip_end": {
+        "name": "Koniec zakresu adresów IP"
+      },
+      "dhcp_dns_primary": {
+        "name": "Preferowany adres DNS"
+      },
+      "device_dns_secondary": {
+        "name": "Alternatywny adres DNS"
+      },
+      "device_gateway": {
+        "name": "Domyślna bramka"
+      },
+      "device_lease_time": {
+        "name": "Czas dzierżawy"
       }
     },
 

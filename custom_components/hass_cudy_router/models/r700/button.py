@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import DOMAIN
 
-from .coordinator import WR6500Coordinator
+from .coordinator import R700Coordinator
 from ..base_button import BaseCudyButton
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,20 +25,20 @@ BUTTON_TYPES: tuple[ButtonEntityDescription, ...] = (
 )
 
 
-def _resolve_coordinator(stored: Any) -> WR6500Coordinator:
-    if isinstance(stored, WR6500Coordinator):
+def _resolve_coordinator(stored: Any) -> R700Coordinator:
+    if isinstance(stored, R700Coordinator):
         return stored
     if isinstance(stored, dict):
-        if "coordinator" in stored and isinstance(stored["coordinator"], WR6500Coordinator):
+        if "coordinator" in stored and isinstance(stored["coordinator"], R700Coordinator):
             return stored["coordinator"]
         if "integration" in stored and hasattr(stored["integration"], "coordinator"):
             return stored["integration"].coordinator
-    if hasattr(stored, "coordinator") and isinstance(stored.coordinator, WR6500Coordinator):
+    if hasattr(stored, "coordinator") and isinstance(stored.coordinator, R700Coordinator):
         return stored.coordinator
     # fallback for tests
     if hasattr(stored, "data"):
         return stored  # type: ignore[return-value]
-    raise ValueError("Could not resolve WR6500Coordinator from hass.data")
+    raise ValueError("Could not resolve R700Coordinator from hass.data")
 
 
 async def async_setup_entry(
@@ -58,7 +58,7 @@ class WR6500RebootButton(BaseCudyButton):
 
     def __init__(
         self,
-        coordinator: WR6500Coordinator,
+        coordinator: R700Coordinator,
         entry: ConfigEntry,
         description: ButtonEntityDescription,
     ) -> None:

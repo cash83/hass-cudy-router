@@ -1,0 +1,174 @@
+<form class="form-horizontal" role="form" method="post" name="cbi" action="/cgi-bin/luci/admin/network/devices/devlist?detail=1" enctype="multipart/form-data" onkeydown="if(event.keyCode==13){return false;}">
+	<div>
+		<input type="hidden" name="token" value="fbf4fa66016d9114275ae1e864b93c89" />
+		<input type="hidden" name="timeclock" value="" />
+		<input type="hidden" name="cbi.submit" value="1" />
+		<input type="password" class="sr-only">
+	</div>
+
+<div>
+	
+	
+<!-- tblsection -->
+<div class="table-responsive">
+<table class="table table-striped">
+	<thead>
+	<tr><th class="hidden-xs">No.</th><th class="hidden-xs">Hostname</th><th class="visible-xs">Hostname</th><th class="hidden-xs"></th><th class="hidden-xs">IP / MAC Address</th><th class="hidden-xs">Real-time Rate</th><th class="hidden-xs">Signal</th><th class="hidden-xs">Duration</th><th>Internet</th><th>Operation</th></tr>
+	</thead>
+	<tbody>
+	<tr class="cbi-section-table-descr"></tr><tr id="cbi-table-1" ondragstart="drag_start(event);" ondragend="drag_end(event);" ondragenter="drag_enter(event);" ondragleave="drag_leave(event);" ondrop="drag_drop(event);" ondragover="drag_over(event);"  data-sid="1" data-store="cbi.sts.table.table">
+		<td class="hidden-xs"><div id="cbi-table-1-idx">
+
+
+
+
+	<p class="form-control-static hidden-xs">1</p>
+	<p class="visible-xs">1</p>
+
+
+</div>
+<div id="cbip-table-1-idx"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-hostname">
+
+
+
+
+	<p class="form-control-static hidden-xs">WR6500<br /><span class="text-primary">Wired</span></p>
+	<p class="visible-xs">WR6500<br /><span class="text-primary">Wired</span></p>
+
+
+</div>
+<div id="cbip-table-1-hostname"></div>
+</td>
+
+
+
+<td class="visible-xs"><div id="cbi-table-1-hostnamexs">
+
+
+
+
+	<p class="form-control-static hidden-xs">WR6500<br />192.168.10.150</p>
+	<p class="visible-xs">WR6500<br />192.168.10.150</p>
+
+
+</div>
+<div id="cbip-table-1-hostnamexs"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-icon">
+
+
+<div style="white-space:nowrap;"><span class="fa-2x"><i class="icon icon-none text-primary" aria-hidden="true"></i></span></div>
+</div>
+<div id="cbip-table-1-icon"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-ipmac">
+
+
+
+
+	<p class="form-control-static hidden-xs">192.168.10.150<br />80:AF:CA:CE:54:57</p>
+	<p class="visible-xs">192.168.10.150<br />80:AF:CA:CE:54:57</p>
+
+
+</div>
+<div id="cbip-table-1-ipmac"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-speed">
+
+
+
+
+	<p class="form-control-static hidden-xs"><i class="fa fa-long-arrow-up" aria-hidden="true"></i> 63.19 Kbps<br /><i class="fa fa-long-arrow-down" aria-hidden="true"></i> 4.35 Mbps</p>
+	<p class="visible-xs"><i class="fa fa-long-arrow-up" aria-hidden="true"></i> 63.19 Kbps<br /><i class="fa fa-long-arrow-down" aria-hidden="true"></i> 4.35 Mbps</p>
+
+
+</div>
+<div id="cbip-table-1-speed"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-signal">
+
+
+
+
+	<p class="form-control-static hidden-xs">---</p>
+	<p class="visible-xs">---</p>
+
+
+</div>
+<div id="cbip-table-1-signal"></div>
+</td>
+
+
+
+<td class="hidden-xs"><div id="cbi-table-1-online">
+
+
+
+
+	<p class="form-control-static hidden-xs">7 Day 03:26:31</p>
+	<p class="visible-xs">7 Day 03:26:31</p>
+
+
+</div>
+<div id="cbip-table-1-online"></div>
+</td>
+
+
+
+<td><div id="cbi-table-1-internet">
+
+
+	<input type="hidden" value="1" name="cbi.cbe.table.1.internet" />
+	<input type="hidden" id="cbid.table.1.internet" name="cbid.table.1.internet" value="1" />
+	
+			<i class="fa fa-toggle-on  fa-2x text-primary" onclick="cbi_switch_toggle(this, true, '/cgi-bin/luci/admin/network/devices/internet?macaddr=80:AF:CA:CE:54:57&hostname=WR6500&internet=1&vpn=0')"></i>
+			
+	
+	<i class="fa fa-spinner fa-2x fa-pulse text-primary hidden"></i>
+</div>
+<div id="cbip-table-1-internet"></div>
+</td>
+
+
+
+<td><div id="cbi-table-1-devinfo">
+
+
+	
+		<button class="btn btn-link" type="submit" onclick='cbi_show_modal(this, "/cgi-bin/luci/admin/network/devices/devinfo", "macaddr=80:AF:CA:CE:54:57&hostname=WR6500&internet=1&vpn=0");return false;' name="cbid.table.1.devinfo" value="" data-action="modal"><i class="fa fa-edit fa-lg"></i></button>
+		<button class="btn hidden btn-link" type="button" disabled=true><i class="fa fa-refresh fa-spin"></i>&nbsp;&nbsp;</button>
+	
+</div>
+<div id="cbip-table-1-devinfo"></div>
+</td>
+
+
+
+<td nowrap="nowrap"></td></tr></tbody>
+</table>
+</div>
+<!-- /tblsection -->
+</div>
+<script type="text/javascript">
+		$("[data-toggle='popover']").popover();
+		cbi_d_update();
+		cbi_init_message("Do you want to leave this page? Your changes may not be saved.");
+	</script>
+</form>

@@ -6,8 +6,8 @@ import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.hass_cudy_router.models.wr6500.coordinator import (
-    WR6500Coordinator,
+from custom_components.hass_cudy_router.models.r700.coordinator import (
+    R700Coordinator,
     CudyRouterDataUpdateCoordinator,
     CudyRouterCoordinator,
 )
@@ -19,7 +19,7 @@ async def test_coordinator_init_with_positional_args(hass: HomeAssistant):
     entry = MagicMock()
     entry.data = {"host": "192.168.0.1"}
 
-    coord = WR6500Coordinator(hass, entry, api)
+    coord = R700Coordinator(hass, entry, api)
 
     assert coord.hass is hass
     assert coord.api is api
@@ -31,7 +31,7 @@ async def test_coordinator_init_with_positional_args(hass: HomeAssistant):
 async def test_coordinator_init_with_keyword_args(hass: HomeAssistant):
     api = AsyncMock()
 
-    coord = WR6500Coordinator(
+    coord = R700Coordinator(
         hass=hass,
         host="router.local",
         api=api,
@@ -48,8 +48,8 @@ async def test_coordinator_backwards_compatible_aliases(hass: HomeAssistant):
     c1 = CudyRouterDataUpdateCoordinator(hass=hass, host="1.1.1.1", api=api)
     c2 = CudyRouterCoordinator(hass=hass, host="2.2.2.2", api=api)
 
-    assert isinstance(c1, WR6500Coordinator)
-    assert isinstance(c2, WR6500Coordinator)
+    assert isinstance(c1, R700Coordinator)
+    assert isinstance(c2, R700Coordinator)
     assert c1.host == "1.1.1.1"
     assert c2.host == "2.2.2.2"
 
@@ -59,7 +59,7 @@ async def test_coordinator_async_update_success(hass: HomeAssistant):
     api = AsyncMock()
     api.get_data = AsyncMock(return_value={"foo": "bar"})
 
-    coord = WR6500Coordinator(hass=hass, host="router", api=api)
+    coord = R700Coordinator(hass=hass, host="router", api=api)
 
     data = await coord._async_update_data()
 
@@ -73,7 +73,7 @@ async def test_coordinator_async_update_failure(hass: HomeAssistant):
     api = AsyncMock()
     api.get_data = AsyncMock(side_effect=RuntimeError("boom"))
 
-    coord = WR6500Coordinator(hass=hass, host="router", api=api)
+    coord = R700Coordinator(hass=hass, host="router", api=api)
 
     with pytest.raises(UpdateFailed):
         await coord._async_update_data()

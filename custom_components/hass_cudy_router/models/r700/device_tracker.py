@@ -7,12 +7,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICE_LIST
-from .coordinator import WR6500Coordinator
+from .coordinator import R700Coordinator
 from ..base_device_tracker import BaseCudyDeviceTracker
 
 
-def _resolve_coordinator(stored: Any) -> WR6500Coordinator:
-    if isinstance(stored, WR6500Coordinator):
+def _resolve_coordinator(stored: Any) -> R700Coordinator:
+    if isinstance(stored, R700Coordinator):
         return stored
     if isinstance(stored, dict):
         if "coordinator" in stored:
@@ -21,9 +21,9 @@ def _resolve_coordinator(stored: Any) -> WR6500Coordinator:
             return stored["integration"].coordinator
     if hasattr(stored, "coordinator"):
         return stored.coordinator
-    if hasattr(stored, "data"):  # test fallback
+    if hasattr(stored, "data"):
         return stored  # type: ignore
-    raise ValueError("Could not resolve WR6500Coordinator")
+    raise ValueError("Could not resolve R700Coordinator")
 
 
 async def async_setup_entry(

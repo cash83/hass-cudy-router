@@ -1,4 +1,3 @@
-"""Tests for Cudy Router device tracker platform."""
 from __future__ import annotations
 
 from typing import Any
@@ -7,12 +6,21 @@ from unittest.mock import MagicMock
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICELIST, MODULE_DEVICES, SENSOR_DEVICE_COUNT
-from custom_components.hass_cudy_router.models.wr6500.api import WR6500Api
+from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICE_LIST, MODULE_DEVICES
+from custom_components.hass_cudy_router.models.base_device_tracker import BaseCudyDeviceTracker
 from custom_components.hass_cudy_router.models.wr6500.device_tracker import (
-    CudyRouterDeviceTracker,
     async_setup_entry,
 )
+
+try:
+    from custom_components.hass_cudy_router.const import DEVICE_LIST as DEVICE_LIST_KEY  # type: ignore
+except Exception:
+    DEVICE_LIST_KEY = "device_list"
+
+try:
+    from custom_components.hass_cudy_router.const import DEVICE_COUNT as DEVICE_COUNT_KEY  # type: ignore
+except Exception:
+    DEVICE_COUNT_KEY = "device_count"
 
 
 @pytest.fixture
@@ -29,8 +37,8 @@ def _set_devices(coordinator: MagicMock, device_list: list[dict[str, Any]]) -> N
     """Helper to inject devices into coordinator data."""
     coordinator.data = {
         MODULE_DEVICES: {
-            OPTIONS_DEVICELIST: device_list,
-            SENSOR_DEVICE_COUNT: len(device_list),
+            DEVICE_LIST_KEY: device_list,
+            DEVICE_COUNT_KEY: len(device_list),
         }
     }
 
@@ -39,10 +47,10 @@ def _set_devices(coordinator: MagicMock, device_list: list[dict[str, Any]]) -> N
 async def test_async_setup_entry_adds_entities(
     hass: HomeAssistant, coordinator: MagicMock
 ):
-    """async_setup_entry should create one entity per MAC in OPTIONS_DEVICELIST."""
+    """async_setup_entry should create one entity per MAC in OPTIONS_DEVICE_LIST."""
     entry = MagicMock()
     entry.entry_id = "test_entry_id"
-    entry.options = {OPTIONS_DEVICELIST: "AA:BB:CC:DD:EE:FF, 11-22-33-44-55-66"}
+    entry.options = {OPTIONS_DEVICE_LIST: "AA:BB:CC:DD:EE:FF, 11-22-33-44-55-66"}
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
@@ -54,7 +62,7 @@ async def test_async_setup_entry_adds_entities(
     await async_setup_entry(hass, entry, _add_entities)
 
     assert len(added) == 2
-    assert all(isinstance(ent, CudyRouterDeviceTracker) for ent in added)
+    assert all(isinstance(ent, BaseCudyDeviceTracker) for ent in added)
 
     # MACs should be normalized to lowercase
     assert added[0]._mac == "aa:bb:cc:dd:ee:ff"
@@ -63,7 +71,7 @@ async def test_async_setup_entry_adds_entities(
 
 def test_tracker_available_reflects_coordinator_state(coordinator: MagicMock):
     """available should mirror coordinator.last_update_success."""
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
 
     coordinator.last_update_success = True
     assert tracker.available is True
@@ -79,13 +87,13 @@ def test_tracker_is_connected_wired_true(coordinator: MagicMock):
         [
             {
                 "mac": "AA:BB:CC:DD:EE:FF",
-                "connection_type": "wired",  # ✅ FIXED KEY
+                "connection_type": "wired",
                 "signal": "",
             }
         ],
     )
 
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
     assert tracker.is_connected is True
 
 
@@ -102,7 +110,7 @@ def test_tracker_is_connected_wifi_with_signal_true(coordinator: MagicMock):
         ],
     )
 
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
     assert tracker.is_connected is True
 
 
@@ -122,7 +130,7 @@ def test_tracker_is_connected_wifi_without_signal_false(
         ],
     )
 
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
     assert tracker.is_connected is False
 
 
@@ -138,7 +146,7 @@ def test_tracker_is_connected_missing_device_false(coordinator: MagicMock):
         ],
     )
 
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
     assert tracker.is_connected is False
 
 
@@ -153,13 +161,13 @@ def test_extra_state_attributes_returns_device_dict(coordinator: MagicMock):
     }
     _set_devices(coordinator, [device])
 
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
     assert tracker.extra_state_attributes == device
 
 
 def test_unique_id_and_name_and_device_info(coordinator: MagicMock):
     """Unique id formatting and device_info should be stable."""
-    tracker = CudyRouterDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
+    tracker = BaseCudyDeviceTracker(coordinator, "aa:bb:cc:dd:ee:ff")
 
     assert tracker.unique_id == "cudy_device_aabbccddeeff"
     assert tracker.name == "Cudy Device aa:bb:cc:dd:ee:ff"

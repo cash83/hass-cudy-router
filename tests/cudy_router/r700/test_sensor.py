@@ -19,7 +19,7 @@ from custom_components.hass_cudy_router.const import (
     SENSOR_DEVICE_COUNT,
 )
 from custom_components.hass_cudy_router.models.base_sensor import BaseCudySensor
-from custom_components.hass_cudy_router.models.wr6500.coordinator import WR6500Coordinator
+from custom_components.hass_cudy_router.models.r700.coordinator import R700Coordinator
 from custom_components.hass_cudy_router.models.wr6500 import sensor as wr6500_sensor
 
 
@@ -53,9 +53,9 @@ def coordinator(
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
     mock_api,
-) -> WR6500Coordinator:
+) -> R700Coordinator:
     config_entry.add_to_hass(hass)
-    coord = WR6500Coordinator(hass=hass, entry=config_entry, api=mock_api)
+    coord = R700Coordinator(hass=hass, entry=config_entry, api=mock_api)
     coord.data = {}
     return coord
 
@@ -64,7 +64,7 @@ def coordinator(
 async def test_async_setup_entry_adds_all_entities(
     hass: HomeAssistant,
     config_entry: MockConfigEntry,
-    coordinator: WR6500Coordinator,
+    coordinator: R700Coordinator,
 ):
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
@@ -87,7 +87,7 @@ def _desc_by_key(key: str):
     raise AssertionError(f"Missing sensor description for key={key}")
 
 
-def test_native_value_system_key(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
+def test_native_value_system_key(coordinator: R700Coordinator, config_entry: MockConfigEntry):
     desc = _desc_by_key(SENSOR_FIRMWARE_VERSION)
 
     coordinator.data = {
@@ -98,7 +98,7 @@ def test_native_value_system_key(coordinator: WR6500Coordinator, config_entry: M
     assert entity.native_value == "1.2.3"
 
 
-def test_native_value_wan_key(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
+def test_native_value_wan_key(coordinator: R700Coordinator, config_entry: MockConfigEntry):
     desc = _desc_by_key(SENSOR_WAN_IP)
 
     coordinator.data = {
@@ -109,7 +109,7 @@ def test_native_value_wan_key(coordinator: WR6500Coordinator, config_entry: Mock
     assert entity.native_value == "203.0.113.10"
 
 
-def test_native_value_lan_key(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
+def test_native_value_lan_key(coordinator: R700Coordinator, config_entry: MockConfigEntry):
     desc = _desc_by_key(SENSOR_LAN_IP)
 
     coordinator.data = {
@@ -120,7 +120,7 @@ def test_native_value_lan_key(coordinator: WR6500Coordinator, config_entry: Mock
     assert entity.native_value == "192.168.0.1"
 
 
-def test_native_value_devices_key(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
+def test_native_value_devices_key(coordinator: R700Coordinator, config_entry: MockConfigEntry):
     desc = _desc_by_key(SENSOR_DEVICE_COUNT)
 
     coordinator.data = {
@@ -131,7 +131,7 @@ def test_native_value_devices_key(coordinator: WR6500Coordinator, config_entry: 
     assert entity.native_value == 7
 
 
-def test_native_value_missing_module_returns_none(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
+def test_native_value_missing_module_returns_none(coordinator: R700Coordinator, config_entry: MockConfigEntry):
     desc = _desc_by_key(SENSOR_WAN_IP)
 
     coordinator.data = {

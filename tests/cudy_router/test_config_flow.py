@@ -1,4 +1,3 @@
-"""Tests for hass_cudy_router config flow."""
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch

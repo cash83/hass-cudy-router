@@ -28,29 +28,30 @@ class Device:
     connection_type: str
 
 
-class WR6500Api:
+class R700Api:
+    """R700 model-specific endpoints + parsing."""
 
     def __init__(self, client: Any) -> None:
         self._client = client
 
     async def get_data(self) -> Dict[str, Dict[str, Any]]:
         system_raw = await self._fetch_system()
-        mesh_raw = await self._fetch_mesh()
         lan_raw = await self._fetch_lan()
         devices_raw = await self._fetch_devices()
         wan_raw = await self._fetch_wan()
+        dhcp_raw = await self._fetch_dhcp()
         devices_list_raw = await self._fetch_devices_list()
 
         system = self.parse_system_info(system_raw)
-        mesh = self.parse_mesh_info(mesh_raw)
         lan = self.parse_lan_info(lan_raw)
         wan = self.parse_wan_info(wan_raw)
+        dhcp = self.parse_dhcp_info(dhcp_raw)
         devices = self.parse_devices(devices_raw)
         devices[OPTIONS_DEVICE_LIST] = self.parse_device_list(devices_list_raw)
 
         return {
             MODULE_SYSTEM: system,
-            MODULE_MESH: mesh,
+            MODULE_DHCP: dhcp,
             MODULE_LAN: lan,
             MODULE_DEVICES: devices,
             MODULE_WAN: wan,
@@ -68,23 +69,28 @@ class WR6500Api:
     async def _fetch_system(self) -> Any:
         return await self._client.get(self._luci("/admin/system/status?detail=1"))
 
-    async def _fetch_mesh(self) -> Any:
-        return await self._client.get(self._luci("/admin/network/mesh/status?detail=1"))
-
     async def _fetch_lan(self) -> Any:
         return await self._client.get(self._luci("/admin/network/lan/status?detail=1"))
 
-    async def _fetch_devices(self) -> Any:
-        return await self._client.get(self._luci("/admin/network/devices/status?detail=1"))
-
     async def _fetch_wan(self) -> Any:
         return await self._client.get(self._luci("/admin/network/wan/status?detail=1"))
+
+    async def _fetch_dhcp(self) -> Any:
+        return await self._client.get(self._luci("/admin/services/dhcp/status"))
+
+    async def _fetch_devices(self) -> Any:
+        return await self._client.get(self._luci("/admin/network/devices/status?detail=1"))
 
     async def _fetch_devices_list(self) -> Any:
         return await self._client.get(self._luci("/admin/network/devices/devlist?detail=1"))
 
     def parse_system_info(self, input_html: str) -> dict[str, Any]:
-        data = {SENSOR_FIRMWARE_VERSION: "Unknown", SENSOR_HARDWARE: "Unknown", SENSOR_SYSTEM_UPTIME: "Unknown"}
+        data = {
+            SENSOR_FIRMWARE_VERSION: "Unknown",
+            SENSOR_HARDWARE: "Unknown",
+            SENSOR_SYSTEM_UPTIME: "Unknown",
+            SENSOR_SYSTEM_LOCALTIME: "Unknown"
+        }
         if not input_html: return data
 
         soup = BeautifulSoup(input_html, "html.parser")
@@ -105,20 +111,13 @@ class WR6500Api:
 
         return data
 
-    def parse_mesh_info(self, input_html: str) -> dict[str, Any]:
-        return self._parse_lines(
-            input_html=input_html,
-            keys={
-                SENSOR_MESH_NETWORK: "Device Name",
-                SENSOR_MESH_UNITS: "Mesh Units",
-            }
-        )
-
     def parse_lan_info(self, input_html: str) -> dict[str, Any]:
         return self._parse_lines(
             input_html=input_html,
             keys={
-                SENSOR_LAN_IP: "IP Address"
+                SENSOR_LAN_IP: "IP Address",
+                SENSOR_LAN_SUBNET: "Subnet Mask",
+                SENSOR_LAN_MAC: "MAC-Address",
             }
         )
 
@@ -128,9 +127,22 @@ class WR6500Api:
             keys={
                 SENSOR_WAN_TYPE: "Protocol",
                 SENSOR_WAN_IP: "IP Address",
+                SENSOR_WAN_GATEWAY: "Gateway",
                 SENSOR_WAN_UPTIME: "Connected Time",
-                SENSOR_WAN_PUBLIC_IP: "Public IP",
                 SENSOR_WAN_DNS: "DNS",
+            }
+        )
+
+    def parse_dhcp_info(self, input_html: str) -> dict[str, Any]:
+        return self._parse_lines(
+            input_html=input_html,
+            keys={
+                SENSOR_DHCP_IP_START: "IP Start",
+                SENSOR_DHCP_IP_END: "IP End",
+                SENSOR_DHCP_DNS_PRIMARY: "Preferred DNS",
+                SENSOR_DHCP_DNS_SECONDARY: "Alternate DNS",
+                SENSOR_DHCP_GATEWAY: "Default Gateway",
+                SENSOR_DHCP_LEASE_TIME: "Leasetime",
             }
         )
 
@@ -139,10 +151,8 @@ class WR6500Api:
             input_html=input_html,
             keys={
                 SENSOR_DEVICE_COUNT: "Devices",
-                SENSOR_WIFI_24_DEVICE_COUNT: "2.4G WiFi",
-                SENSOR_WIFI_5_DEVICE_COUNT: "5G WiFi",
-                SENSOR_WIRED_DEVICE_COUNT: "Wired",
-                SENSOR_MESH_DEVICE_COUNT: "Mesh",
+                SENSOR_DEVICE_ONLINE: "Online",
+                SENSOR_DEVICE_BLOCKED: "Blocked",
             }
         )
         soup = BeautifulSoup(input_html, "html.parser")
@@ -166,7 +176,9 @@ class WR6500Api:
 
             # 0: index (No.)
             idx_cell = cols[0]
+            idx = idx_cell.get_text(strip=True)
 
+            # 1: hostname
             # 1: hostname + connection type (Mesh / 2.4G WiFi / etc.)
             hostname_cell = cols[1]
             # take only the "desktop" version (hidden-xs) to avoid duplicates
@@ -259,7 +271,7 @@ class WR6500Api:
         unique_lines = list(dict.fromkeys(lines))
 
         for output_key, label in keys.items():
-            match = WR6500Api._get_info(unique_lines, label)
+            match = R700Api._get_info(unique_lines, label)
             if match is not None:
                 result[output_key] = match
 

@@ -26,14 +26,17 @@
 
   "entity": {
     "sensor": {
-      "firmware_version": {
+      "system_firmware_version": {
         "name": "Firmware version"
       },
-      "hardware": {
+      "system_hardware": {
         "name": "Hardware"
       },
       "system_uptime": {
         "name": "Connected time"
+      },
+      "system_localtime": {
+        "name": "Local time"
       },
       "mesh_network": {
         "name": "Mesh network"
@@ -46,6 +49,9 @@
       },
       "wan_ip": {
         "name": "WAN IP address"
+      },
+      "wan_gateway": {
+        "name": "WAN Gateway"
       },
       "wan_dns": {
         "name": "WAN DNS addresses"
@@ -65,20 +71,50 @@
       "lan_ip": {
         "name": "LAN IP address"
       },
+      "lan_subnet": {
+        "name": "LAN Subnet"
+      },
+      "lan_mac": {
+        "name": "LAN MAC Address"
+      },
       "device_count": {
         "name": "Total devices connected"
       },
-      "wifi_24_device_count": {
+      "device_wifi_24_device_count": {
         "name": "2.4 GHz Wi-Fi devices connected"
       },
-      "wifi_5_device_count": {
+      "device_wifi_5_device_count": {
         "name": "5 GHz Wi-Fi devices connected"
       },
-      "wired_device_count": {
+      "device_wired_device_count": {
         "name": "Wired devices connected"
       },
-      "mesh_device_count": {
+      "device_mesh_device_count": {
         "name": "Mesh devices connected"
+      },
+      "device_online": {
+        "name": "Online devices"
+      },
+      "device_blocked": {
+        "name": "Blocked devices"
+      },
+      "dhcp_ip_start": {
+        "name": "IP Range start"
+      },
+      "dhcp_ip_end": {
+        "name": "IP Range end"
+      },
+      "dhcp_dns_primary": {
+        "name": "Preferred DNS"
+      },
+      "device_dns_secondary": {
+        "name": "Alternate DNS"
+      },
+      "device_gateway": {
+        "name": "Default Gateway"
+      },
+      "device_lease_time": {
+        "name": "Lease time"
       }
     },
 
