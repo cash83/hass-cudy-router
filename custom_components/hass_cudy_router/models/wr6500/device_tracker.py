@@ -1,29 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICE_LIST
-from .coordinator import WR6500Coordinator
-from ..base_device_tracker import BaseCudyDeviceTracker
-
-
-def _resolve_coordinator(stored: Any) -> WR6500Coordinator:
-    if isinstance(stored, WR6500Coordinator):
-        return stored
-    if isinstance(stored, dict):
-        if "coordinator" in stored:
-            return stored["coordinator"]
-        if "integration" in stored:
-            return stored["integration"].coordinator
-    if hasattr(stored, "coordinator"):
-        return stored.coordinator
-    if hasattr(stored, "data"):  # test fallback
-        return stored  # type: ignore
-    raise ValueError("Could not resolve WR6500Coordinator")
+from custom_components.hass_cudy_router.models.base_coordinator import resolve_coordinator
+from custom_components.hass_cudy_router.models.base_device_tracker import BaseCudyDeviceTracker
+from custom_components.hass_cudy_router.models.wr6500 import WR6500Coordinator
 
 
 async def async_setup_entry(
@@ -32,7 +16,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     stored = hass.data[DOMAIN][entry.entry_id]
-    coordinator = _resolve_coordinator(stored)
+    coordinator = resolve_coordinator(stored, coordinator_cls=WR6500Coordinator)
 
     macs = entry.options.get(OPTIONS_DEVICE_LIST, "")
     tracked = [m.strip().lower() for m in macs.split(",") if m.strip()]

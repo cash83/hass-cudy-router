@@ -10,13 +10,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import *
 
-from .coordinator import R700Coordinator
+from .coordinator import GenericCoordinator
 from ..base_sensor import async_setup_model_sensors
 
-R700_MODULE_MAP: Final = {
+GENERIC_MODULE_MAP: Final = {
     "system_": MODULE_SYSTEM,
     "lan_": MODULE_LAN,
-    "wan_": MODULE_WAN,
     "dhcp_": MODULE_DHCP,
     "device_": MODULE_DEVICES,
 }
@@ -66,37 +65,6 @@ SENSOR_DESCRIPTIONS: Final = (
         icon=ICON_LAN_MAC,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    # ----- WAN -----
-    SensorEntityDescription(
-        key=SENSOR_WAN_PUBLIC_IP,
-        name="WAN Public IP Address",
-        icon=ICON_WAN_PUBLIC_IP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key=SENSOR_WAN_IP,
-        name="WAN IP Address",
-        icon=ICON_WAN_IP,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key=SENSOR_WAN_DNS,
-        name="WAN DNS Address(es)",
-        icon=ICON_WAN_DNS,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key=SENSOR_WAN_TYPE,
-        name="Connection Type",
-        icon=ICON_WAN_TYPE,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    SensorEntityDescription(
-        key=SENSOR_WAN_UPTIME,
-        name="WAN Connected Time",
-        icon=ICON_WAN_UPTIME,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
     # ----- DHCP -----
     SensorEntityDescription(
         key=SENSOR_DHCP_IP_START,
@@ -141,18 +109,6 @@ SENSOR_DESCRIPTIONS: Final = (
         icon=ICON_DEVICE_COUNT,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    SensorEntityDescription(
-        key=SENSOR_DEVICE_ONLINE,
-        name="Online Devices",
-        icon=ICON_DEVICE_ONLINE,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key=SENSOR_DEVICE_BLOCKED,
-        name="Blocked Devices",
-        icon=ICON_DEVICE_BLOCKED,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
 )
 
 async def async_setup_entry(
@@ -165,6 +121,6 @@ async def async_setup_entry(
         entry,
         async_add_entities,
         SENSOR_DESCRIPTIONS,
-        module_map=R700_MODULE_MAP,
-        coordinator_cls=R700Coordinator,
+        module_map=GENERIC_MODULE_MAP,
+        coordinator_cls=GenericCoordinator,
     )

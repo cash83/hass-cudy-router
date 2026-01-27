@@ -1,4 +1,3 @@
-"""Config flow for Cudy Router integration."""
 from __future__ import annotations
 
 import logging
@@ -42,10 +41,6 @@ class CannotConnect(Exception):
 
 
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    This will attempt to authenticate using the async CudyClient.
-    """
     protocol = data.get(CONF_PROTOCOL, "http")
     use_https = protocol.lower() in ("https", "ssl", "tls")
     host = data[CONF_HOST]
@@ -72,8 +67,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Cudy Router."""
-
     VERSION = 1
 
     async def async_step_user(

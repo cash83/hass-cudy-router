@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from typing import Any, Dict
-
-from bs4 import BeautifulSoup
 
 from custom_components.hass_cudy_router.const import *
 from custom_components.hass_cudy_router.models.base_api import BaseApi
@@ -23,19 +20,17 @@ class Device:
     connection_type: str
 
 
-class R700Api(BaseApi):
+class GenericApi(BaseApi):
 
     async def get_data(self) -> Dict[str, Dict[str, Any]]:
         system_raw = await self._fetch_system()
         lan_raw = await self._fetch_lan()
         devices_raw = await self._fetch_devices()
-        wan_raw = await self._fetch_wan()
         dhcp_raw = await self._fetch_dhcp()
         devices_list_raw = await self._fetch_devices_list()
 
         system = self.parse_system_info(system_raw)
         lan = self.parse_lan_info(lan_raw)
-        wan = self.parse_wan_info(wan_raw)
         dhcp = self.parse_dhcp_info(dhcp_raw)
         devices = self.parse_devices(devices_raw)
         devices[OPTIONS_DEVICE_LIST] = self.parse_device_list(devices_list_raw)
@@ -43,10 +38,9 @@ class R700Api(BaseApi):
 
         return {
             MODULE_SYSTEM: system,
-            MODULE_LAN: lan,
-            MODULE_WAN: wan,
             MODULE_DHCP: dhcp,
-            MODULE_DEVICES: devices,
+            MODULE_LAN: lan,
+            MODULE_DEVICES: devices
         }
 
     async def _fetch_system(self) -> Any:
@@ -54,9 +48,6 @@ class R700Api(BaseApi):
 
     async def _fetch_lan(self) -> Any:
         return await self.fetch_text(self._luci("/admin/network/lan/status?detail=1"))
-
-    async def _fetch_wan(self) -> Any:
-        return await self.fetch_text(self._luci("/admin/network/wan/status?detail=1"))
 
     async def _fetch_dhcp(self) -> Any:
         return await self.fetch_text(self._luci("/admin/services/dhcp/status"))
@@ -66,27 +57,3 @@ class R700Api(BaseApi):
 
     async def _fetch_devices_list(self) -> Any:
         return await self.fetch_text(self._luci("/admin/network/devices/devlist?detail=1"))
-
-    def parse_devices(self, html: str) -> dict[str, Any]:
-        data = self.parse_kv_table(
-            html,
-            {
-                SENSOR_DEVICE_COUNT: "Devices",
-                SENSOR_DEVICE_ONLINE: "Online",
-                SENSOR_DEVICE_BLOCKED: "Blocked",
-            },
-        )
-
-        if html:
-            soup = BeautifulSoup(html, "html.parser")
-            text = soup.get_text()
-            dc_match = re.search(r"Devices\s*([^\s|]+)", text)
-            if dc_match:
-                data[SENSOR_DEVICE_COUNT] = self._to_int(dc_match.group(1).strip())
-
-        for k in (SENSOR_DEVICE_ONLINE, SENSOR_DEVICE_BLOCKED):
-            if k in data:
-                iv = self._to_int(data.get(k))
-                if iv is not None:
-                    data[k] = iv
-        return data

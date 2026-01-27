@@ -3,7 +3,7 @@ from .coordinator import P5Coordinator
 
 class P5Integration(ModelIntegration):
     model = "P5"
-    platforms = {"sensor"}  # add switch/button if present
+    platforms = {"sensor"}
 
     def __init__(self, hass, entry, client):
         super().__init__(hass, entry, client)
@@ -14,7 +14,6 @@ class P5Integration(ModelIntegration):
         await self.coordinator.async_config_entry_first_refresh()
 
     async def async_unload(self):
-        # usually nothing special; platforms unload handles entities
         return
 
 def create_integration(hass, entry, client):

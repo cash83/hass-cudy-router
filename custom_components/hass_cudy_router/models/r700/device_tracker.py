@@ -7,23 +7,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICE_LIST
-from .coordinator import R700Coordinator
-from ..base_device_tracker import BaseCudyDeviceTracker
-
-
-def _resolve_coordinator(stored: Any) -> R700Coordinator:
-    if isinstance(stored, R700Coordinator):
-        return stored
-    if isinstance(stored, dict):
-        if "coordinator" in stored:
-            return stored["coordinator"]
-        if "integration" in stored:
-            return stored["integration"].coordinator
-    if hasattr(stored, "coordinator"):
-        return stored.coordinator
-    if hasattr(stored, "data"):
-        return stored  # type: ignore
-    raise ValueError("Could not resolve R700Coordinator")
+from custom_components.hass_cudy_router.models.base_coordinator import resolve_coordinator
+from custom_components.hass_cudy_router.models.base_device_tracker import BaseCudyDeviceTracker
+from custom_components.hass_cudy_router.models.r700 import R700Coordinator
 
 
 async def async_setup_entry(
@@ -32,7 +18,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     stored = hass.data[DOMAIN][entry.entry_id]
-    coordinator = _resolve_coordinator(stored)
+    coordinator = resolve_coordinator(stored, coordinator_cls=R700Coordinator)
 
     macs = entry.options.get(OPTIONS_DEVICE_LIST, "")
     tracked = [m.strip().lower() for m in macs.split(",") if m.strip()]

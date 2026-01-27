@@ -14,6 +14,7 @@ def test_r700_parse_system():
     html = read_fixture("system.html", model="r700")
     expected = {
         SENSOR_SYSTEM_FIRMWARE_VERSION: "1.15.5-20230420-155410",
+        SENSOR_SYSTEM_MODEL: "R700",
         SENSOR_SYSTEM_HARDWARE: "R700 V1.0",
         SENSOR_SYSTEM_UPTIME: "23 Day 03:53:02",
         SENSOR_SYSTEM_LOCALTIME: "2026-01-26 16:23:57",

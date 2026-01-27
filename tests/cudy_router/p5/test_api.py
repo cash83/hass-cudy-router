@@ -20,6 +20,7 @@ def test_p5_parse_system():
     html = read_fixture("system.html", model="p5")
     expected = {
         SENSOR_SYSTEM_FIRMWARE_VERSION: "2.4.25-20260112-095317",
+        SENSOR_SYSTEM_MODEL: "P5",
         SENSOR_SYSTEM_HARDWARE: "P5 V1.1",
         SENSOR_SYSTEM_UPTIME: "14:33:38",
         SENSOR_SYSTEM_LOCALTIME: "2026-01-26 19:33:53",

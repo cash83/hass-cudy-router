@@ -35,6 +35,9 @@
       "system_firmware_version": {
         "name": "Firmware version"
       },
+      "system_model": {
+        "name": "Model"
+      },
       "system_hardware": {
         "name": "Hardware"
       },

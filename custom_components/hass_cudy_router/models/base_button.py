@@ -1,48 +1,71 @@
 from __future__ import annotations
 
-from typing import Any
+from dataclasses import dataclass
+from typing import Awaitable, Callable, Iterable, Optional, Final
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from custom_components.hass_cudy_router.const import DOMAIN, BUTTON_REBOOT
+from custom_components.hass_cudy_router.models.base_coordinator import BaseCudyCoordinator, resolve_coordinator
+
+PressFn = Callable[[HomeAssistant, ConfigEntry, BaseCudyCoordinator], Awaitable[None]]
+
+@dataclass(frozen=True)
+class CudyButtonSpec:
+    description: ButtonEntityDescription
+    press: PressFn
 
 
 class BaseCudyButton(CoordinatorEntity, ButtonEntity):
 
     def __init__(
         self,
-        coordinator: Any,
+        coordinator: BaseCudyCoordinator,
         entry: ConfigEntry,
-        description: ButtonEntityDescription,
-        *,
-        domain: str,
-        manufacturer: str = "Cudy",
-        device_name_prefix: str = "Cudy Router",
+        spec: CudyButtonSpec,
     ) -> None:
         super().__init__(coordinator)
-        self.entity_description = description
+        self.entity_description = spec.description
+        self._press = spec.press
+        self._entry = entry
 
-        host = (
-            getattr(coordinator, "host", None)
-            or entry.data.get("host")
-            or entry.unique_id
-            or entry.entry_id
-        )
-
-        # Keep the same unique_id convention used elsewhere in the project/tests.
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_name = f"{device_name_prefix} {host} {description.name}"
-
-        self._attr_device_info = {
-            "identifiers": {(domain, host)},
-            "manufacturer": manufacturer,
-            "name": f"{device_name_prefix} {host}",
-        }
+        self._attr_unique_id = f"{entry.entry_id}_{self.entity_description.key}"
+        self._attr_has_entity_name = True
 
     async def async_press(self) -> None:
-        """Handle button press."""
-        await self.async_action()
+        await self._press(self.hass, self._entry, self.coordinator)
 
-    async def async_action(self) -> None:
-        """Perform the model-specific action."""
-        raise NotImplementedError
+async def _press_reboot(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: BaseCudyCoordinator,
+) -> None:
+    await coordinator.api.reboot()
+    await coordinator.async_request_refresh()
+
+BUTTON_SPECS: Final = (
+    CudyButtonSpec(
+        description=ButtonEntityDescription(
+            key=BUTTON_REBOOT,
+            name="Reboot",
+            icon="mdi:restart",
+        ),
+        press=_press_reboot,
+    ),
+)
+
+async def async_setup_model_buttons(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities,
+    specs: Iterable[CudyButtonSpec],
+    *,
+    coordinator_cls: Optional[type[BaseCudyCoordinator]] = None,
+) -> None:
+    stored = hass.data[DOMAIN][entry.entry_id]
+    coordinator = resolve_coordinator(stored, coordinator_cls=coordinator_cls)
+
+    async_add_entities(BaseCudyButton(coordinator, entry, spec) for spec in specs)

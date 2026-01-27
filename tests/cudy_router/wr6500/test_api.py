@@ -20,6 +20,7 @@ def test_wr6500_parse_system():
     html = read_fixture("system.html", model="wr6500")
     expected = {
         SENSOR_SYSTEM_FIRMWARE_VERSION: "2.3.15-20250805-113843",
+        SENSOR_SYSTEM_MODEL: "WR6500",
         SENSOR_SYSTEM_HARDWARE: "WR6500 V1.0",
         SENSOR_SYSTEM_UPTIME: "08:09:48",
         SENSOR_SYSTEM_LOCALTIME: "2026-01-21 12:10:10",

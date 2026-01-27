@@ -4,28 +4,23 @@ import logging
 from typing import Any, Dict
 
 from custom_components.hass_cudy_router.const import *
-from custom_components.hass_cudy_router.models.basic_api import BasicHtmlApi
-
-_LOGGER = logging.getLogger(__name__)
+from custom_components.hass_cudy_router.models.base_api import BaseApi
 
 
-class P5Api(BasicHtmlApi):
-
-    def __init__(self, client: Any) -> None:
-        self.client = client
+class P5Api(BaseApi):
 
     async def get_data(self) -> Dict[str, Dict[str, Any]]:
-        info_raw = await self._fetch_text("/admin/system/wizard")
-        system_raw = await self._fetch_text("/admin/system/status?detail=1")
-        mesh_raw = await self._fetch_text("/admin/network/mesh/status?detail=1")
-        lan_raw = await self._fetch_text("/admin/network/lan/status?detail=1")
-        wifi_24g_raw = await self._fetch_text("/admin/network/wireless/status?detail=1&iface=wlan00")
-        wifi_5g_raw = await self._fetch_text("/admin/network/wireless/status?detail=1&iface=wlan10")
-        dhcp_raw = await self._fetch_text("/admin/services/dhcp/status")
-        gsm_raw = await self._fetch_text("/admin/network/gcom/status")
-        sms_raw = await self._fetch_text("/admin/network/gcom/sms/status")
-        devices_raw = await self._fetch_text("/admin/network/devices/status?detail=1")
-        devices_list_raw = await self._fetch_text("/admin/network/devices/devlist?detail=1")
+        info_raw = await self.fetch_text("/admin/system/wizard")
+        system_raw = await self.fetch_text("/admin/system/status?detail=1")
+        mesh_raw = await self.fetch_text("/admin/network/mesh/status?detail=1")
+        lan_raw = await self.fetch_text("/admin/network/lan/status?detail=1")
+        wifi_24g_raw = await self.fetch_text("/admin/network/wireless/status?detail=1&iface=wlan00")
+        wifi_5g_raw = await self.fetch_text("/admin/network/wireless/status?detail=1&iface=wlan10")
+        dhcp_raw = await self.fetch_text("/admin/services/dhcp/status")
+        gsm_raw = await self.fetch_text("/admin/network/gcom/status")
+        sms_raw = await self.fetch_text("/admin/network/gcom/sms/status")
+        devices_raw = await self.fetch_text("/admin/network/devices/status?detail=1")
+        devices_list_raw = await self.fetch_text("/admin/network/devices/devlist?detail=1")
 
         info = self.parse_basic_info(info_raw)
         system = self.parse_system_info(system_raw)

@@ -9,6 +9,5 @@ class WR6500Coordinator(BaseCudyCoordinator):
         super().__init__(*args, name_prefix="cudy_wr6500", **kwargs)
 
 
-# Backwards-compatible aliases for older code/tests
 CudyRouterDataUpdateCoordinator = WR6500Coordinator
 CudyRouterCoordinator = WR6500Coordinator

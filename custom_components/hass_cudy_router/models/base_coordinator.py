@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast, Type
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
@@ -88,3 +88,38 @@ class BaseCudyCoordinator(DataUpdateCoordinator):
         except Exception as err:
             _LOGGER.debug("Error updating Cudy router data: %s", err)
             raise UpdateFailed(err) from err
+
+def resolve_coordinator(
+    stored: Any,
+    *,
+    coordinator_cls: Optional[Type[BaseCudyCoordinator]] = None,
+) -> BaseCudyCoordinator:
+
+    if coordinator_cls is not None and isinstance(stored, coordinator_cls):
+        return stored
+    if isinstance(stored, BaseCudyCoordinator):
+        return stored
+
+    if isinstance(stored, dict):
+        if "coordinator" in stored and isinstance(stored["coordinator"], BaseCudyCoordinator):
+            c = stored["coordinator"]
+            if coordinator_cls is None or isinstance(c, coordinator_cls):
+                return c
+
+        if "integration" in stored:
+            integ = stored["integration"]
+            c = getattr(integ, "coordinator", None)
+            if isinstance(c, BaseCudyCoordinator):
+                if coordinator_cls is None or isinstance(c, coordinator_cls):
+                    return c
+
+    c = getattr(stored, "coordinator", None)
+    if isinstance(c, BaseCudyCoordinator):
+        if coordinator_cls is None or isinstance(c, coordinator_cls):
+            return c
+
+    if hasattr(stored, "data") and hasattr(stored, "last_update_success"):
+        return stored
+
+    want = coordinator_cls.__name__ if coordinator_cls else "BaseCudyCoordinator"
+    raise ValueError(f"Could not resolve {want} from hass.data")

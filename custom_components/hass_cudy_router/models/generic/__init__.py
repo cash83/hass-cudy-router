@@ -1,8 +1,8 @@
 from ..base import ModelIntegration
-from .coordinator import R700Coordinator
+from .coordinator import GenericCoordinator
 
-class R700Integration(ModelIntegration):
-    model = "R700"
+class GenericIntegration(ModelIntegration):
+    model = "Generic"
     platforms = {"sensor"}
 
     def __init__(self, hass, entry, client):
@@ -10,11 +10,11 @@ class R700Integration(ModelIntegration):
         self.coordinator = None
 
     async def async_setup(self):
-        self.coordinator = R700Coordinator(self.hass, self.client)
+        self.coordinator = GenericCoordinator(self.hass, self.client)
         await self.coordinator.async_config_entry_first_refresh()
 
     async def async_unload(self):
         return
 
 def create_integration(hass, entry, client):
-    return R700Integration(hass, entry, client)
+    return GenericIntegration(hass, entry, client)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -10,8 +11,12 @@ from custom_components.hass_cudy_router.const import *
 _UP_RE = re.compile(r"↑\s*([\d.]+)\s*([A-Za-z/]+)")
 _DOWN_RE = re.compile(r"↓\s*([\d.]+)\s*([A-Za-z/]+)")
 
+LOGGER = logging.getLogger(__name__)
 
-class BasicHtmlApi:
+class BaseApi:
+
+    def __init__(self, client: Any) -> None:
+        self.client = client
 
     @staticmethod
     def _luci(path: str) -> str:
@@ -19,7 +24,7 @@ class BasicHtmlApi:
             path = "/" + path
         return f"/cgi-bin/luci{path}"
 
-    async def _fetch_text(self, path: str) -> str:
+    async def fetch_text(self, path: str) -> str:
         if self.client is None:
             return ""
         fetch = getattr(self.client, "get_text", None)
@@ -46,6 +51,7 @@ class BasicHtmlApi:
     def parse_system_info(self, html: str) -> dict[str, Any]:
         data: dict[str, Any] = {
             SENSOR_SYSTEM_FIRMWARE_VERSION: "Firmware Version",
+            SENSOR_SYSTEM_MODEL: "Model",
             SENSOR_SYSTEM_HARDWARE: "Hardware",
             SENSOR_SYSTEM_UPTIME: "System Uptime",
             SENSOR_SYSTEM_LOCALTIME: "Local Time",
@@ -53,17 +59,18 @@ class BasicHtmlApi:
         if not html:
             return data
 
+        data = self.parse_kv_table(
+            html,
+            {
+                SENSOR_SYSTEM_FIRMWARE_VERSION: "Firmware Version",
+                SENSOR_SYSTEM_MODEL: "Model",
+                SENSOR_SYSTEM_HARDWARE: "Hardware",
+                SENSOR_SYSTEM_UPTIME: "System Uptime",
+                SENSOR_SYSTEM_LOCALTIME: "Local Time",
+            },
+        )
+
         lines = self._get_text_lines(html)
-
-        hw = self._get_info_from_lines(lines, "Hardware")
-        if hw:
-            data[SENSOR_SYSTEM_HARDWARE] = hw
-
-        soup = BeautifulSoup(html, "html.parser")
-        text = soup.get_text()
-        fw_match = re.search(r"Firmware Version\s*([^\s|]+)", text)
-        if fw_match:
-            data[SENSOR_SYSTEM_FIRMWARE_VERSION] = fw_match.group(1).strip()
 
         uptime = self._get_info_from_lines(lines, "Uptime")
         if uptime:
@@ -203,6 +210,15 @@ class BasicHtmlApi:
     def parse_device_list(self, html: str) -> list[dict]:
         return self.parse_device_table(html)
 
+    async def reboot(self):
+        try:
+            await self._client.post(
+                self._luci("/admin/system/reboot"),
+                data={"reboot": "1"},  # harmless if router ignores it
+            )
+        except Exception as exc:
+            LOGGER.warning("Reboot request failed: %s", exc)
+
     @staticmethod
     def _normalize_spaces(value: str) -> str:
         return re.sub(r"\s+", " ", value).strip()
@@ -213,7 +229,7 @@ class BasicHtmlApi:
             return []
         soup = BeautifulSoup(html, "html.parser")
         text = soup.get_text("\n")
-        lines = [BasicHtmlApi._normalize_spaces(l) for l in text.splitlines() if BasicHtmlApi._normalize_spaces(l)]
+        lines = [BaseApi._normalize_spaces(l) for l in text.splitlines() if BaseApi._normalize_spaces(l)]
         return list(dict.fromkeys(lines))
 
     @staticmethod
@@ -240,10 +256,10 @@ class BasicHtmlApi:
 
     @staticmethod
     def parse_kv_table(html: str, mapping: Dict[str, str]) -> Dict[str, Any]:
-        lines = BasicHtmlApi._get_text_lines(html)
+        lines = BaseApi._get_text_lines(html)
         out: Dict[str, Any] = {}
         for out_key, label in mapping.items():
-            v = BasicHtmlApi._get_info_from_lines(lines, label)
+            v = BaseApi._get_info_from_lines(lines, label)
             if v is not None:
                 out[out_key] = v
             else:
@@ -269,7 +285,7 @@ class BasicHtmlApi:
         parsed: List[Dict[str, Any]] = []
         for tr in rows:
             cols = tr.find_all(["td", "th"])
-            cell_texts = [BasicHtmlApi._normalize_spaces(td.get_text(" ")) for td in cols]
+            cell_texts = [BaseApi._normalize_spaces(td.get_text(" ")) for td in cols]
 
             mac = None
             ip = None

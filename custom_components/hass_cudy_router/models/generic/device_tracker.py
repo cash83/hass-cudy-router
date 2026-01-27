@@ -7,7 +7,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from custom_components.hass_cudy_router.const import DOMAIN, OPTIONS_DEVICE_LIST
 from custom_components.hass_cudy_router.models.base_coordinator import resolve_coordinator
 from custom_components.hass_cudy_router.models.base_device_tracker import BaseCudyDeviceTracker
-from custom_components.hass_cudy_router.models.p5 import P5Coordinator
+from custom_components.hass_cudy_router.models.generic import GenericCoordinator
 
 
 async def async_setup_entry(
@@ -16,7 +16,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     stored = hass.data[DOMAIN][entry.entry_id]
-    coordinator = resolve_coordinator(stored, coordinator_cls=P5Coordinator)
+    coordinator = resolve_coordinator(stored, coordinator_cls=GenericCoordinator)
 
     macs = entry.options.get(OPTIONS_DEVICE_LIST, "")
     tracked = [m.strip().lower() for m in macs.split(",") if m.strip()]

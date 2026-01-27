@@ -1,5 +1,5 @@
 from custom_components.hass_cudy_router.models.base_button import async_setup_model_buttons, BUTTON_SPECS
-from custom_components.hass_cudy_router.models.p5 import P5Coordinator
+from custom_components.hass_cudy_router.models.generic import GenericCoordinator
 
 
 async def async_setup_entry(hass, entry, async_add_entities) -> None:
@@ -8,5 +8,5 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
         entry,
         async_add_entities,
         BUTTON_SPECS,
-        coordinator_cls=P5Coordinator,
+        coordinator_cls=GenericCoordinator,
     )

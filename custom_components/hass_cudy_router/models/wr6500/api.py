@@ -4,23 +4,20 @@ import logging
 from typing import Any, Dict
 
 from custom_components.hass_cudy_router.const import *
-from custom_components.hass_cudy_router.models.basic_api import BasicHtmlApi
+from custom_components.hass_cudy_router.models.base_api import BaseApi
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class WR6500Api(BasicHtmlApi):
-
-    def __init__(self, client: Any) -> None:
-        self.client = client
+class WR6500Api(BaseApi):
 
     async def get_data(self) -> Dict[str, Dict[str, Any]]:
-        system_raw = await self._fetch_text("/admin/system/status?detail=1")
-        mesh_raw = await self._fetch_text("/admin/network/mesh/status?detail=1")
-        lan_raw = await self._fetch_text("/admin/network/lan/status?detail=1")
-        devices_raw = await self._fetch_text("/admin/network/devices/status?detail=1")
-        wan_raw = await self._fetch_text("/admin/network/wan/status?detail=1")
-        devices_list_raw = await self._fetch_text("/admin/network/devices/devlist?detail=1")
+        system_raw = await self.fetch_text("/admin/system/status?detail=1")
+        mesh_raw = await self.fetch_text("/admin/network/mesh/status?detail=1")
+        lan_raw = await self.fetch_text("/admin/network/lan/status?detail=1")
+        devices_raw = await self.fetch_text("/admin/network/devices/status?detail=1")
+        wan_raw = await self.fetch_text("/admin/network/wan/status?detail=1")
+        devices_list_raw = await self.fetch_text("/admin/network/devices/devlist?detail=1")
 
         system = self.parse_system_info(system_raw)
         mesh = self.parse_mesh_info(mesh_raw)
