@@ -5,14 +5,13 @@ import asyncio
 from datetime import datetime
 
 from custom_components.hass_cudy_router.const import *
-from custom_components.hass_cudy_router.models.r700.api import R700Api
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 sys.path.insert(0, ROOT)
 
 from custom_components.hass_cudy_router.client import CudyClient
-from custom_components.hass_cudy_router.models.wr6500.api import (
-    WR6500Api,
+from custom_components.hass_cudy_router.models.p5.api import (
+    P5Api,
     MODULE_SYSTEM,
     MODULE_LAN,
     MODULE_DEVICES,
@@ -84,12 +83,13 @@ async def main() -> None:
             print("❌ Authentication failed, aborting")
             return
 
-        print("\n📦 Running R700Api.get_data()")
-        api = R700Api(client)
+        return
+        print("\n📦 Running P5Api.get_data()")
+        api = P5Api(client)
         data = await api.get_data()
 
         print("\n=== Parsed modules ===")
-        for key in (MODULE_SYSTEM, MODULE_DHCP, MODULE_WAN, MODULE_LAN, MODULE_DEVICES):
+        for key in (MODULE_SYSTEM, MODULE_MESH, MODULE_WAN, MODULE_LAN, MODULE_DEVICES):
             value = data.get(key)
             if isinstance(value, dict):
                 print_module(key, value)

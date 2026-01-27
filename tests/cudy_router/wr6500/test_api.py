@@ -1,104 +1,91 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from custom_components.hass_cudy_router.const import *
 from custom_components.hass_cudy_router.models.wr6500.api import WR6500Api
+from tests.cudy_router.basic_api_test import read_fixture, api_wan_info, api_basic_info, api_system_info, api_mesh_info, \
+    api_lan_info, api_dhcp_info, api_devices_info, api_device_list
 
 API = WR6500Api(client=None)
 
-
-def _read_fixture(*candidates: str) -> str:
-    base = Path(__file__).resolve().parents[1] / "html" / "wr6500"
-    for name in candidates:
-        p = base / name
-        if p.exists():
-            return p.read_text(encoding="utf-8", errors="ignore")
-
-    for p in sorted(base.glob("*system*.html")):
-        return p.read_text(encoding="utf-8", errors="ignore")
-
-    raise FileNotFoundError(f"No WR6500 system HTML fixture found in {base}")
+def test_wr6500_parse_info():
+    html = read_fixture("info.html", model="wr6500")
+    expected = {
+        SENSOR_INFO_WORK_MODE: "Wireless Router",
+        SENSOR_INFO_INTERFACE: "WAN",
+    }
+    api_basic_info(API, html, expected)
 
 
-def test_parse_system_from_fixture_html():
-    html = _read_fixture("system.html")
-
-    data = API.parse_system_info(html)
-
-    assert SENSOR_FIRMWARE_VERSION in data
-    assert SENSOR_HARDWARE in data
-    assert SENSOR_SYSTEM_UPTIME in data
-
-    assert any(
-        (
-            data.get(SENSOR_FIRMWARE_VERSION),
-            data.get(SENSOR_HARDWARE),
-            data.get(SENSOR_SYSTEM_UPTIME),
-        )
-    )
+def test_wr6500_parse_system():
+    html = read_fixture("system.html", model="wr6500")
+    expected = {
+        SENSOR_SYSTEM_FIRMWARE_VERSION: "2.3.15-20250805-113843",
+        SENSOR_SYSTEM_HARDWARE: "WR6500 V1.0",
+        SENSOR_SYSTEM_UPTIME: "08:09:48",
+        SENSOR_SYSTEM_LOCALTIME: "2026-01-21 12:10:10",
+    }
+    api_system_info(API, html, expected)
 
 
-def test_parse_mesh_from_fixture_html():
-    html = _read_fixture("mesh.html")
+def test_wr6500_parse_mesh():
+    html = read_fixture("mesh.html", model="wr6500")
+    expected = {
+        SENSOR_MESH_NETWORK: "Mesh_5456",
+        SENSOR_MESH_UNITS: 2
+    }
 
-    data = API.parse_mesh_info(html)
-
-    assert SENSOR_MESH_UNITS in data
-    assert SENSOR_MESH_NETWORK in data
-
-    assert any(
-        (
-            data.get(SENSOR_MESH_UNITS),
-            data.get(SENSOR_MESH_NETWORK)
-        )
-    )
+    api_mesh_info(API, html, expected)
 
 
-def test_parse_lan_from_fixture_html():
-    html = _read_fixture("lan.html")
+def test_wr6500_parse_lan():
+    html = read_fixture("lan.html", model="wr6500")
+    expected = {
+        SENSOR_LAN_IP: "192.168.2.1",
+        SENSOR_LAN_SUBNET: "255.255.255.0",
+        SENSOR_LAN_MAC: "80:AF:CA:0E:54:56",
+    }
 
-    data = API.parse_lan_info(html)
-
-    assert SENSOR_LAN_IP in data
-
-    lan_ip = data.get(SENSOR_LAN_IP)
-    if lan_ip:
-        assert "." in lan_ip
-
-
-def test_parse_wan_from_fixture_html():
-    html = _read_fixture("wan.html")
-
-    data = API.parse_wan_info(html)
-
-    assert SENSOR_WAN_PUBLIC_IP in data
-    assert SENSOR_WAN_IP in data
-    assert SENSOR_WAN_DNS in data
-    assert SENSOR_WAN_TYPE in data
-    assert SENSOR_WAN_UPTIME in data
-
-    wan_ip = data.get(SENSOR_WAN_IP)
-    if wan_ip:
-        assert "." in wan_ip
+    api_lan_info(API, html, expected)
 
 
-def test_parse_devices_from_fixture_html():
-    html = _read_fixture("devices.html")
-    data = API.parse_devices(html)
+def test_wr6500_parse_wan():
+    html = read_fixture("wan.html", model="wr6500")
+    expected = {
+        SENSOR_WAN_IP: "192.168.10.150",
+        SENSOR_WAN_PUBLIC_IP: "83.238.165.41 *",
+        SENSOR_WAN_DNS: "8.8.8.8/62.233.233.233",
+        SENSOR_WAN_TYPE: "DHCP client",
+        SENSOR_WAN_UPTIME: "08:26:31",
+    }
 
-    assert SENSOR_DEVICE_COUNT in data
-    assert SENSOR_WIFI_24_DEVICE_COUNT in data
-    assert SENSOR_WIFI_5_DEVICE_COUNT in data
-    assert SENSOR_WIRED_DEVICE_COUNT in data
-    assert SENSOR_MESH_DEVICE_COUNT in data
+    api_wan_info(API, html, expected)
 
 
-def test_parse_device_list_from_fixture_html():
-    html = _read_fixture("device_list.html")
-    data = API.parse_device_list(html)
+def test_wr6500_parse_dhcp():
+    html = read_fixture("dhcp.html", model="wr6500")
+    expected = {
+        SENSOR_DHCP_IP_START: "192.168.2.10",
+        SENSOR_DHCP_IP_END: "192.168.2.250",
+        SENSOR_DHCP_DNS_PRIMARY: "192.168.2.191",
+        SENSOR_DHCP_DNS_SECONDARY: "8.8.8.8",
+        SENSOR_DHCP_GATEWAY: "192.168.2.1",
+        SENSOR_DHCP_LEASE_TIME: "120 Mins",
+    }
 
-    for dev in data:
-        assert DEVICE_HOSTNAME in dev
-        assert DEVICE_IP in dev
-        assert DEVICE_MAC in dev
+    api_dhcp_info(API, html, expected)
+
+def test_wr6500_parse_devices():
+    html = read_fixture("devices.html", model="wr6500")
+    expected = {
+        SENSOR_DEVICE_COUNT: 30,
+        SENSOR_WIFI_24_DEVICE_COUNT: 4,
+        SENSOR_WIFI_5_DEVICE_COUNT: 2,
+        SENSOR_WIRED_DEVICE_COUNT: 5,
+        SENSOR_MESH_DEVICE_COUNT: 19,
+    }
+
+    api_devices_info(API, html, expected)
+
+def test_wr6500_device_list():
+    html = read_fixture("device_list.html", model="wr6500")
+    api_device_list(html, 31)

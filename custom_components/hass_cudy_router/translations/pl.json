@@ -26,6 +26,12 @@
 
   "entity": {
     "sensor": {
+      "info_work_mode": {
+        "name": "Tryb Pracy"
+      },
+      "info_interface": {
+        "name": "Interfejs"
+      },
       "system_firmware_version": {
         "name": "Wersja oprogramowania"
       },
@@ -76,6 +82,54 @@
       },
       "lan_mac": {
         "name": "Adres MAC"
+      },
+      "24g_wifi_ssid": {
+        "name": "WiFi 2.4G SSID"
+      },
+      "24g_wifi_bssid": {
+        "name": "WiFi 2.4G BSSID"
+      },
+      "24g_wifi_encryption": {
+        "name": "Szyfrowanie WiFi 2.4G"
+      },
+      "24g_wifi_channel": {
+        "name": "Kanał WiFi 2.4G"
+      },
+      "5g_wifi_ssid": {
+        "name": "WiFi 5G SSID"
+      },
+      "5g_wifi_bssid": {
+        "name": "WiFi 5G BSSID"
+      },
+      "5g_wifi_encryption": {
+        "name": "Szyfrowanie WiFi 5G"
+      },
+      "5g_wifi_channel": {
+        "name": "Kanał WiFi 5G"
+      },
+      "gsm_network_type": {
+        "name": "Typ Sieci"
+      },
+      "gsm_download": {
+        "name": "Pobieranie"
+      },
+      "gsm_upload": {
+        "name": "Wysyłanie"
+      },
+      "gsm_public_ip": {
+        "name": "Publiczne IP"
+      },
+      "gsm_ip_address": {
+        "name": "Adres IP"
+      },
+      "gsm_connected_time": {
+        "name": "Czas Połączenia"
+      },
+      "sms_inbox": {
+        "name": "Skrzynka Odbiorcza"
+      },
+      "sms_outbox": {
+        "name": "Skrzynka Nadawcza"
       },
       "device_count": {
         "name": "Łączna liczba podłączonych urządzeń"

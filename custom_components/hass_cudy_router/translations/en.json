@@ -26,6 +26,12 @@
 
   "entity": {
     "sensor": {
+      "info_work_mode": {
+        "name": "Work Mode"
+      },
+      "info_interface": {
+        "name": "Interface"
+      },
       "system_firmware_version": {
         "name": "Firmware version"
       },
@@ -76,6 +82,54 @@
       },
       "lan_mac": {
         "name": "LAN MAC Address"
+      },
+      "24g_wifi_ssid": {
+        "name": "WiFi 2.4G SSID"
+      },
+      "24g_wifi_bssid": {
+        "name": "WiFi 2.4G BSSID"
+      },
+      "24g_wifi_encryption": {
+        "name": "WiFi 2.4G Encryption"
+      },
+      "24g_wifi_channel": {
+        "name": "WiFi 2.4G Channel"
+      },
+      "5g_wifi_ssid": {
+        "name": "WiFi 5G SSID"
+      },
+      "5g_wifi_bssid": {
+        "name": "WiFi 5G BSSID"
+      },
+      "5g_wifi_encryption": {
+        "name": "WiFi 5G Encryption"
+      },
+      "5g_wifi_channel": {
+        "name": "WiFi 5G Channel"
+      },
+      "gsm_network_type": {
+        "name": "Network Type"
+      },
+      "gsm_download": {
+        "name": "Download"
+      },
+      "gsm_upload": {
+        "name": "Upload"
+      },
+      "gsm_public_ip": {
+        "name": "Public IP"
+      },
+      "gsm_ip_address": {
+        "name": "IP Address"
+      },
+      "gsm_connected_time": {
+        "name": "Connected Time"
+      },
+      "sms_inbox": {
+        "name": "Inbox"
+      },
+      "sms_outbox": {
+        "name": "Outbox"
       },
       "device_count": {
         "name": "Total devices connected"

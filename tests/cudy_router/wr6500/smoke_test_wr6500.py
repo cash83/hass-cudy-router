@@ -21,8 +21,8 @@ from custom_components.hass_cudy_router.models.wr6500.api import (
 )
 
 EXPECTED_VALUES = {
-    SENSOR_FIRMWARE_VERSION: "2.3.15-20250805-113843",
-    SENSOR_HARDWARE: "WR6500 V1.0",
+    SENSOR_SYSTEM_FIRMWARE_VERSION: "2.3.15-20250805-113843",
+    SENSOR_SYSTEM_HARDWARE: "WR6500 V1.0",
     SENSOR_SYSTEM_UPTIME: "09:44:16",
     SENSOR_MESH_NETWORK: "Mesh_5456",
     SENSOR_MESH_UNITS: "2",
@@ -79,7 +79,7 @@ async def main() -> None:
         print("🔐 Authenticating...")
         ok = await client.authenticate()
         print(f"Auth result: {ok}")
-        print(f"sysauth set: {bool(client.sysauth)}")
+        print(f"sysauth set: {client.sysauth}")
         print(f"Auth cookie: {'SET' if ok else 'NOT SET'}")
 
         if not ok:

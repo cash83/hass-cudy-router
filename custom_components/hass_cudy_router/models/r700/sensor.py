@@ -24,13 +24,13 @@ R700_MODULE_MAP: Final = {
 
 SENSOR_DESCRIPTIONS: Final = (
     SensorEntityDescription(
-        key=SENSOR_FIRMWARE_VERSION,
+        key=SENSOR_SYSTEM_FIRMWARE_VERSION,
         name="Firmware Version",
         icon=ICON_FIRMWARE_VERSION,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     SensorEntityDescription(
-        key=SENSOR_HARDWARE,
+        key=SENSOR_SYSTEM_HARDWARE,
         name="Hardware",
         icon=ICON_HARDWARE,
         entity_category=EntityCategory.DIAGNOSTIC,

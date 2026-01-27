@@ -4,109 +4,72 @@ from pathlib import Path
 
 from custom_components.hass_cudy_router.const import *
 from custom_components.hass_cudy_router.models.r700.api import R700Api
+from tests.cudy_router.basic_api_test import read_fixture, api_device_list, api_basic_info, api_system_info, \
+    api_dhcp_info, api_lan_info, api_devices_info, api_wan_info
 
 API = R700Api(client=None)
 
 
-def _read_fixture(*candidates: str) -> str:
-    base = Path(__file__).resolve().parents[1] / "html" / "r700"
-    for name in candidates:
-        p = base / name
-        if p.exists():
-            return p.read_text(encoding="utf-8", errors="ignore")
-
-    for p in sorted(base.glob("*system*.html")):
-        return p.read_text(encoding="utf-8", errors="ignore")
-
-    raise FileNotFoundError(f"No WR6500 system HTML fixture found in {base}")
+def test_r700_parse_system():
+    html = read_fixture("system.html", model="r700")
+    expected = {
+        SENSOR_SYSTEM_FIRMWARE_VERSION: "1.15.5-20230420-155410",
+        SENSOR_SYSTEM_HARDWARE: "R700 V1.0",
+        SENSOR_SYSTEM_UPTIME: "23 Day 03:53:02",
+        SENSOR_SYSTEM_LOCALTIME: "2026-01-26 16:23:57",
+    }
+    api_system_info(API, html, expected)
 
 
-def test_parse_system_from_fixture_html():
-    html = _read_fixture("system.html")
+def test_r700_parse_lan():
+    html = read_fixture("lan.html", model="r700")
+    expected = {
+        SENSOR_LAN_IP: "192.168.1.1",
+        SENSOR_LAN_SUBNET: "255.255.255.0",
+        SENSOR_LAN_MAC: "80:AF:CA:30:6C:77",
+    }
 
-    data = API.parse_system_info(html)
-
-    assert SENSOR_FIRMWARE_VERSION in data
-    assert SENSOR_HARDWARE in data
-    assert SENSOR_SYSTEM_UPTIME in data
-    assert SENSOR_SYSTEM_LOCALTIME in data
-
-    assert any(
-        (
-            data.get(SENSOR_FIRMWARE_VERSION),
-            data.get(SENSOR_HARDWARE),
-            data.get(SENSOR_SYSTEM_UPTIME),
-            data.get(SENSOR_SYSTEM_LOCALTIME),
-        )
-    )
+    api_lan_info(API, html, expected)
 
 
-def test_parse_dhcp_from_fixture_html():
-    html = _read_fixture("dhcp.html")
+def test_r700_parse_wan():
+    html = read_fixture("wan.html", model="r700")
+    expected = {
+        SENSOR_WAN_IP: "83.238.165.41",
+        SENSOR_WAN_PUBLIC_IP: "n/a",
+        SENSOR_WAN_DNS: "87.204.204.204/62.233.233.233",
+        SENSOR_WAN_TYPE: "PPPoE",
+        SENSOR_WAN_UPTIME: "23 Day 04:09:38",
+    }
 
-    data = API.parse_dhcp_info(html)
-
-    assert SENSOR_DHCP_IP_START in data
-    assert SENSOR_DHCP_IP_END in data
-    assert SENSOR_DHCP_GATEWAY in data
-    assert SENSOR_DHCP_DNS_PRIMARY in data
-    assert SENSOR_DHCP_DNS_SECONDARY in data
-    assert SENSOR_DHCP_LEASE_TIME in data
-
-    ip_start = data.get(SENSOR_DHCP_IP_START)
-    assert "." in ip_start
-    gateway = data.get(SENSOR_DHCP_GATEWAY)
-    assert gateway == "192.168.10.1"
-    lease_time = data.get(SENSOR_DHCP_LEASE_TIME)
-    assert lease_time == "12 Hours"
+    api_wan_info(API, html, expected)
 
 
-def test_parse_lan_from_fixture_html():
-    html = _read_fixture("lan.html")
+def test_r700_parse_dhcp():
+    html = read_fixture("dhcp.html", model="r700")
+    expected = {
+        SENSOR_DHCP_IP_START: "192.168.1.100",
+        SENSOR_DHCP_IP_END: "192.168.1.199",
+        SENSOR_DHCP_DNS_PRIMARY: "8.8.8.8",
+        SENSOR_DHCP_DNS_SECONDARY: "62.233.233.233",
+        SENSOR_DHCP_GATEWAY: "192.168.1.1",
+        SENSOR_DHCP_LEASE_TIME: "12 Hours",
+    }
 
-    data = API.parse_lan_info(html)
-
-    assert SENSOR_LAN_IP in data
-    assert SENSOR_LAN_SUBNET in data
-    assert SENSOR_LAN_MAC in data
-
-    lan_ip = data.get(SENSOR_LAN_IP)
-    if lan_ip:
-        assert "." in lan_ip
-
-
-def test_parse_wan_from_fixture_html():
-    html = _read_fixture("wan.html")
-
-    data = API.parse_wan_info(html)
-
-    assert SENSOR_WAN_IP in data
-    assert SENSOR_WAN_DNS in data
-    assert SENSOR_WAN_TYPE in data
-    assert SENSOR_WAN_UPTIME in data
-
-    wan_ip = data.get(SENSOR_WAN_IP)
-    if wan_ip:
-        assert "." in wan_ip
+    api_dhcp_info(API, html, expected)
 
 
-def test_parse_devices_from_fixture_html():
-    html = _read_fixture("devices.html")
-    device_list = _read_fixture("device_list.html")
+def test_r700_parse_devices():
+    html = read_fixture("devices.html", model="r700")
+    expected = {
+        SENSOR_DEVICE_COUNT: 11,
+        SENSOR_DEVICE_ONLINE: 6,
+        SENSOR_DEVICE_BLOCKED: 2,
+    }
 
-    data = API.parse_devices(html)
-    data[OPTIONS_DEVICE_LIST] = API.parse_device_list(device_list)
-
-    assert SENSOR_DEVICE_COUNT in data
-    assert SENSOR_DEVICE_ONLINE in data
-    assert SENSOR_DEVICE_BLOCKED in data
+    api_devices_info(API, html, expected)
 
 
-def test_parse_device_list_from_fixture_html():
-    html = _read_fixture("device_list.html")
-    data = API.parse_device_list(html)
-
-    for dev in data:
-        assert DEVICE_HOSTNAME in dev
-        assert DEVICE_IP in dev
-        assert DEVICE_MAC in dev
+def test_r700_parse_device_list():
+    html = read_fixture("device_list.html", model="r700")
+    api_device_list(html, 1)

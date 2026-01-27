@@ -13,19 +13,38 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.hass_cudy_router.const import *
 
-from .coordinator import WR6500Coordinator
+from .coordinator import P5Coordinator
 from ..base_sensor import BaseCudySensor
 
-WR6500_MODULE_MAP: Final = {
+P5_MODULE_MAP: Final = {
+    "info_": MODULE_INFO,
     "system_": MODULE_SYSTEM,
-    "wan_": MODULE_WAN,
-    "lan_": MODULE_LAN,
-    "device_": MODULE_DEVICES,
     "mesh_": MODULE_DEVICES,
+    "lan_": MODULE_LAN,
+    "24g_": MODULE_WIRELESS_24G,
+    "5g_": MODULE_WIRELESS_5G,
+    "dhcp_": MODULE_DHCP,
+    "gsm_": MODULE_GSM,
+    "sms_": MODULE_SMS,
+    "device_": MODULE_DEVICES,
 }
 
 
 SENSOR_DESCRIPTIONS: Final = (
+    # ----- INFO -----
+    SensorEntityDescription(
+        key=SENSOR_INFO_WORK_MODE,
+        name="Work Mode",
+        icon=ICON_INFO_WORK_MODE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key=SENSOR_INFO_INTERFACE,
+        name="Interface",
+        icon=ICON_INFO_INTERFACE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    # ----- SYSTEM -----
     SensorEntityDescription(
         key=SENSOR_SYSTEM_FIRMWARE_VERSION,
         name="Firmware Version",
@@ -141,9 +160,9 @@ SENSOR_DESCRIPTIONS: Final = (
 )
 
 
-def _resolve_coordinator(stored) -> WR6500Coordinator:
+def _resolve_coordinator(stored) -> P5Coordinator:
     # Accept direct coordinator
-    if isinstance(stored, WR6500Coordinator):
+    if isinstance(stored, P5Coordinator):
         return stored
     # Common wrapper pattern
     if isinstance(stored, dict):
@@ -157,7 +176,7 @@ def _resolve_coordinator(stored) -> WR6500Coordinator:
     # Test/loose fallback
     if hasattr(stored, "data"):
         return stored  # type: ignore[return-value]
-    raise ValueError("Could not resolve WR6500Coordinator from hass.data")
+    raise ValueError("Could not resolve P5Coordinator from hass.data")
 
 
 async def async_setup_entry(
@@ -173,7 +192,7 @@ async def async_setup_entry(
             coordinator,
             entry,
             desc,
-            module_map=WR6500_MODULE_MAP,
+            module_map=P5_MODULE_MAP,
         )
         for desc in SENSOR_DESCRIPTIONS
     ]

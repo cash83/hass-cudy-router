@@ -13,7 +13,7 @@ from custom_components.hass_cudy_router.const import (
     MODULE_WAN,
     MODULE_LAN,
     MODULE_DEVICES,
-    SENSOR_FIRMWARE_VERSION,
+    SENSOR_SYSTEM_FIRMWARE_VERSION,
     SENSOR_WAN_IP,
     SENSOR_LAN_IP,
     SENSOR_DEVICE_COUNT,
@@ -88,10 +88,10 @@ def _desc_by_key(key: str):
 
 
 def test_native_value_system_key(coordinator: WR6500Coordinator, config_entry: MockConfigEntry):
-    desc = _desc_by_key(SENSOR_FIRMWARE_VERSION)
+    desc = _desc_by_key(SENSOR_SYSTEM_FIRMWARE_VERSION)
 
     coordinator.data = {
-        MODULE_SYSTEM: {SENSOR_FIRMWARE_VERSION: "1.2.3"},
+        MODULE_SYSTEM: {SENSOR_SYSTEM_FIRMWARE_VERSION: "1.2.3"},
     }
 
     entity = BaseCudySensor(coordinator, config_entry, desc, module_map=wr6500_sensor.WR6500_MODULE_MAP)
@@ -135,7 +135,7 @@ def test_native_value_missing_module_returns_none(coordinator: WR6500Coordinator
     desc = _desc_by_key(SENSOR_WAN_IP)
 
     coordinator.data = {
-        MODULE_SYSTEM: {SENSOR_FIRMWARE_VERSION: "1.2.3"},
+        MODULE_SYSTEM: {SENSOR_SYSTEM_FIRMWARE_VERSION: "1.2.3"},
     }
 
     entity = BaseCudySensor(coordinator, config_entry, desc, module_map=wr6500_sensor.WR6500_MODULE_MAP)
