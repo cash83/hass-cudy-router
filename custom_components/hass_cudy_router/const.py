@@ -1,4 +1,3 @@
-"""Constants for the Cudy Router integration."""
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import EntityCategory
 
@@ -7,8 +6,6 @@ DOMAIN = "hass_cudy_router"
 PLATFORMS = {"sensor", "button", "device_tracker"}
 
 DEFAULT_SCAN_INTERVAL = 30
-
-MODULE_INFO = "info"
 
 MODULE_SYSTEM = "system"
 MODULE_LAN = "lan"
@@ -26,13 +23,8 @@ MODULE_SMS = "sms"
 MODULE_VPN = "vpn"
 MODULE_USB = "usb"
 
-
-
-## Info
-SENSOR_INFO_WORK_MODE = "info_work_mode"
-SENSOR_INFO_INTERFACE = "info_interface"
 ## System
-SENSOR_SYSTEM_FIRMWARE_VERSION = "system_firmware_version"
+SENSOR_SYSTEM_FIRMWARE_VERSION = "system_firmware"
 SENSOR_SYSTEM_MODEL = "system_model"
 SENSOR_SYSTEM_HARDWARE = "system_hardware"
 SENSOR_SYSTEM_UPTIME = "system_uptime"
@@ -234,7 +226,7 @@ SENSORS = {
             SENSORS_KEY_CLASS: None
         },
         {
-            SENSORS_KEY_KEY: SENSOR_MESH_NETWORK,
+            SENSORS_KEY_KEY: SENSOR_MESH_UNITS,
             SENSORS_KEY_DESCRIPTION: ["Mesh Units", "Units"],
             SENSORS_KEY_ICON: "mdi:server-network",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
@@ -688,8 +680,8 @@ CUDY_DEVICES = [
 
 CAPABILITY_URLS = {
     MODULE_SYSTEM: [
-        "/admin/system/status/detail/1",
         "/admin/system/status?detail=1",
+        "/admin/system/status/detail/1",
     ],
     MODULE_LAN: [
         "/admin/network/lan/status?detail=1",

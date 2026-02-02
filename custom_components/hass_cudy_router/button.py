@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -10,7 +9,6 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import *
-from .models import ModelSpec
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,22 +25,15 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    data = hass.data[DOMAIN][entry.entry_id]
-    spec: ModelSpec = data["spec"]
-
-    if "button" not in spec.platforms or not getattr(spec, "supports_reboot", False):
-        return
-
-    async_add_entities([CudyRebootButton(hass, entry, spec)])
+    async_add_entities([CudyRebootButton(hass, entry)])
 
 
 class CudyRebootButton(ButtonEntity):
     _attr_has_entity_name = True
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, spec: ModelSpec) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self._entry = entry
-        self._spec = spec
 
         entry_data = getattr(entry, "data", {})
         self._host = entry_data.get("host", "") if isinstance(entry_data, dict) else ""
@@ -64,26 +55,22 @@ class CudyRebootButton(ButtonEntity):
         coord_data = getattr(coordinator, "data", None) or {}
         system = coord_data.get(MODULE_SYSTEM, {}) if isinstance(coord_data, dict) else {}
 
+        model = None
+        if isinstance(system, dict):
+            model = system.get(SENSOR_SYSTEM_MODEL)
         sw_version = None
         if isinstance(system, dict):
-            sw_version = system.get(SENSOR_SYSTEM_FIRMWARE_VERSION) or system.get(SENSOR_FIRMWARE_VERSION)
+            sw_version = system.get(SENSOR_SYSTEM_FIRMWARE_VERSION) or system.get(SENSOR_SYSTEM_HARDWARE)
 
         return DeviceInfo(
             identifiers={(DOMAIN, stable_id)},
             name=f"Cudy Router ({self._host})" if self._host else "Cudy Router",
             manufacturer="Cudy",
-            model=self._spec.model,
+            model=model,
             sw_version=sw_version,
         )
 
     async def async_press(self) -> None:
-        """Reboot the router.
-
-        We try multiple possible locations for reboot logic to support your evolving refactor:
-        - integration.async_reboot()
-        - coordinator.async_reboot()
-        - client.async_reboot() / client.reboot()
-        """
         data = self.hass.data[DOMAIN][self._entry.entry_id]
         integration = data.get("integration")
         coordinator = data.get("coordinator")

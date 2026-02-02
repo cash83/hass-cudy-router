@@ -7,14 +7,11 @@ import re
 from bs4 import BeautifulSoup
 
 from custom_components.hass_cudy_router.const import (
-    # sensor schema
     SENSORS,
     SENSORS_KEY_KEY,
     SENSORS_KEY_DESCRIPTION,
     SENSORS_KEY_CLASS,
     SensorStateClass,
-
-    # modules
     MODULE_DEVICES,
     MODULE_DEVICE_LIST,
 )
@@ -111,13 +108,7 @@ def extract_xhr_endpoints(html: str) -> dict[str, dict[str, str]]:
     return endpoints
 
 
-# ---- Generic parser driven by SENSORS -------------------------------------
-
 def parse_module_by_sensors(module: str, html: str) -> dict[str, Any]:
-    """
-    Parse a module page using only SENSORS[module][].SENSORS_KEY_DESCRIPTION label variants.
-    Returns {sensor_key: value_or_None}.
-    """
     sensors = SENSORS.get(module, [])
     kv = extract_kv_pairs(html)
 

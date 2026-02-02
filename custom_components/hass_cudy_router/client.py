@@ -241,7 +241,6 @@ class CudyClient:
             data=data,
             headers=headers,
         ) as resp:
-            # if auth expired, try once to re-auth and retry
             if resp.status == 403 and require_auth:
                 await self.authenticate()
                 headers["Cookie"] = f"sysauth={self.sysauth}" if self.sysauth else ""
@@ -262,8 +261,7 @@ class CudyClient:
             try:
                 resp.raise_for_status()
             except ClientResponseError as err:
-                _LOGGER.error("%s %s failed: %s", method, url, err)
-                raise
+                return ""
 
             ctype = resp.headers.get("Content-Type", "")
             if "application/json" in ctype:

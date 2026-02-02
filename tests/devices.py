@@ -16,72 +16,72 @@ from custom_components.hass_cudy_router.const import *
 
 URLS = {
     MODULE_SYSTEM: [
-        "/admin/system/status",
         "/admin/system/status/detail/1",
+        "/admin/system/status",
     ],
     MODULE_LAN: [
-        "/admin/network/lan/status",
         "/admin/network/lan/status/detail/1",
+        "/admin/network/lan/status",
     ],
     MODULE_DHCP: [
-        "/admin/services/dhcp/status",
         "/admin/services/dhcp/status/detail/1",
+        "/admin/services/dhcp/status",
     ],
     MODULE_DEVICES: [
-        "/admin/network/devices/status",
         "/admin/network/devices/status/detail/1",
+        "/admin/network/devices/status",
     ],
     MODULE_DEVICE_LIST: [
-        "/admin/network/devices/devlist",
         "/admin/network/devices/devlist/detail/1",
+        "/admin/network/devices/devlist",
     ],
     MODULE_WAN: [
-        "/admin/network/wan/status",
-        "/admin/network/wan/iface/wan/status",
         "/admin/network/wan/status/detail/1",
         "/admin/network/wan/iface/wan/status/detail/1",
+        "/admin/network/wan/iface/wan/status",
+        "/admin/network/wan/status",
     ],
     MODULE_WAN_SECONDARY: [
-        "/admin/network/wan/iface/wand/status",
         "/admin/network/wan/iface/wand/status/detail/1",
+        "/admin/network/wan/iface/wand/status",
     ],
     MODULE_MULTI_WAN: [
-        "/admin/network/mwan3/status",
         "/admin/network/mwan3/status/detail/1",
+        "/admin/network/mwan3/status",
     ],
     MODULE_MESH: [
-        "/admin/network/mesh/status",
         "/admin/network/mesh/status/detail/1",
+        "/admin/network/mesh/status",
     ],
     MODULE_VPN: [
-        "/admin/network/vpn/pptp/status",
         "/admin/network/vpn/pptp/status/detail/1",
+        "/admin/network/vpn/pptp/status",
     ],
     MODULE_GSM: [
-        "/admin/network/gcom/status",
-        "/admin/network/gcom/iface/4g/status",
         "/admin/network/gcom/iface/4g/status/detail/1",
+        "/admin/network/gcom/iface/4g/status",
+        "/admin/network/gcom/status",
     ],
     MODULE_SMS: [
-        "/admin/network/gcom/sms/status",
-        "/admin/network/gcom/sms/iface/4g/status",
         "/admin/network/gcom/sms/iface/4g/status/detail/1",
+        "/admin/network/gcom/sms/iface/4g/status",
+        "/admin/network/gcom/sms/status",
     ],
     MODULE_WIRELESS_24G: [
-        "/admin/network/wireless/status/iface/wlan00",
         "/admin/network/wireless/status/detail/1/iface/wlan00",
+        "/admin/network/wireless/status/iface/wlan00",
     ],
     MODULE_WIRELESS_5G: [
-        "/admin/network/wireless/status/iface/wlan10",
         "/admin/network/wireless/status/detail/1/iface/wlan10",
+        "/admin/network/wireless/status/iface/wlan10",
     ],
     MODULE_WIRELESS_6G: [
-        "/admin/network/wireless/status/iface/wlan20",
         "/admin/network/wireless/status/detail/1/iface/wlan20",
+        "/admin/network/wireless/status/iface/wlan20",
     ],
     MODULE_USB: [
-        "/admin/services/usb/status",
         "/admin/services/usb/status/detail/1",
+        "/admin/services/usb/status",
     ],
 }
 

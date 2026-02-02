@@ -1,8 +1,8 @@
 import pytest
 
+from custom_components.hass_cudy_router.const import *
 from custom_components.hass_cudy_router.parser import parse_module_by_sensors
 from tests.cudy_router.fixtures import read_html, html_exists
-from tests.cudy_router.model_data import *
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("model", CUDY_DEVICES)

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.hass_cudy_router.const import DOMAIN
+from custom_components.hass_cudy_router.const import DOMAIN, SENSOR_SYSTEM_FIRMWARE_VERSION
 from custom_components.hass_cudy_router.coordinator import CudyCoordinator
 
 
@@ -17,13 +17,13 @@ async def test_coordinator_refresh_sets_data(hass: HomeAssistant):
     entry.add_to_hass(hass)
 
     api = AsyncMock()
-    api.get_data.return_value = {"system": {"system_firmware_version": "X"}}
+    api.get_data.return_value = {"system": {SENSOR_SYSTEM_FIRMWARE_VERSION: "X"}}
 
     c = CudyCoordinator(hass=hass, entry=entry, api=api, host="test")
 
     await c.async_refresh()
 
-    assert c.data["system"]["system_firmware_version"] == "X"
+    assert c.data["system"][SENSOR_SYSTEM_FIRMWARE_VERSION] == "X"
 
 
 @pytest.mark.asyncio

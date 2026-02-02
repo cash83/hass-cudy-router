@@ -163,6 +163,36 @@
       },
       "dhcp_lease_time": {
         "name": "Lease time"
+      },
+      "6g_wifi_ssid": {
+        "name": "WiFi 6G SSID"
+      },
+      "6g_wifi_bssid": {
+        "name": "WiFi 6G BSSID"
+      },
+      "6g_wifi_encryption": {
+        "name": "WiFi 6G Encryption"
+      },
+      "6g_wifi_channel": {
+        "name": "WiFi 6G Channel"
+      },
+      "usb_sharing": {
+        "name": "USB Sharing Status"
+      },
+      "usb_tethering": {
+        "name": "USB Tethering Status"
+      },
+      "vpn_enabled": {
+        "name": "VPN Enabled"
+      },
+      "vpn_tunnels": {
+        "name": "VPN Tunnels"
+      },
+      "wan_gateway": {
+        "name": "WAN Gateway"
+      },
+      "wan_mode": {
+        "name": "WAN Mode"
       }
     },
 

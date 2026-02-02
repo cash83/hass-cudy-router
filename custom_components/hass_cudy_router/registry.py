@@ -51,7 +51,7 @@ async def create_model_integration(
     entry: ConfigEntry,
     client: CudyClient,
 ) -> CudyIntegration:
-    if model not in CUDY_DEVICES.keys():
+    if model not in CUDY_DEVICES:
         _LOGGER.error("Unsupported or unknown Cudy model detected: %s", model)
         raise ValueError(f"Unsupported Cudy model: {model}")
 

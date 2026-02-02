@@ -4,13 +4,11 @@ from unittest.mock import MagicMock
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from custom_components.hass_cudy_router.const import DOMAIN, MODULE_SYSTEM, SENSOR_SYSTEM_FIRMWARE_VERSION, \
-    CUDY_DEVICES, SENSORS, CAPABILITY_URLS, MODULE_WIRELESS_5G, MODULE_GSM, MODULE_WAN_SECONDARY, MODULE_MESH, \
-    MODULE_MULTI_WAN
+from custom_components.hass_cudy_router.const import *
 from custom_components.hass_cudy_router.api import CudyApi
 from custom_components.hass_cudy_router.coordinator import CudyCoordinator
 from custom_components.hass_cudy_router.sensor import async_setup_entry as sensor_setup
-from tests.cudy_router.fixtures import html_exists, read_html, FakeClient
+from tests.cudy_router.fixtures import html_exists, FakeClient
 
 
 @pytest.mark.asyncio
