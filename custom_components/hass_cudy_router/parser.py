@@ -30,7 +30,8 @@ def _to_int_if_possible(value: str | None) -> Optional[int]:
     try:
         return int(value)
     except ValueError:
-        m = re.search(r"(\d+)", value)
+        # Capture first integer (including negative values like -82)
+        m = re.search(r"(-?\d+)", value)
         return int(m.group(1)) if m else None
 
 
@@ -40,30 +41,43 @@ def extract_kv_pairs(html: str) -> dict[str, str]:
     Supports table (tr/td or tr/th) and dl/dt/dd.
     """
     out: dict[str, str] = {}
+    seen: dict[str, int] = {}
     if not html:
         return out
 
     soup = BeautifulSoup(html, "html.parser")
 
     # Tables
+    # LuCI pages come in a few variants:
+    # - 2-column (Label | Value)
+    # - 3-column CBI tables ("" | Status(Label) | Connected(Value))
     for table in soup.find_all("table"):
         for tr in table.find_all("tr"):
             cells = tr.find_all(["th", "td"])
             if len(cells) < 2:
                 continue
-            ps = cells[1].find_all(["p"])
-            vs = cells[2].find_all(["p"])
-            if len(ps) > 0:
-                k = _clean(ps[0].get_text())
+
+            # Choose label/value columns
+            if len(cells) >= 3:
+                label_cell = cells[1]
+                value_cell = cells[2]
             else:
-                k = _clean(cells[1].get_text())
-            if len(vs) > 0:
-                v = _clean(vs[0].get_text())
-            else:
-                v = _clean(cells[2].get_text())
+                label_cell = cells[0]
+                value_cell = cells[1]
+
+            ps = label_cell.find_all(["p"])
+            vs = value_cell.find_all(["p"])
+
+            k = _clean(ps[0].get_text()) if ps else _clean(label_cell.get_text())
+            v = _clean(vs[0].get_text()) if vs else _clean(value_cell.get_text())
             if k:
-                if k not in out.keys():
+                # Some pages repeat the same label multiple times (e.g. SCC)
+                if k in out:
+                    seen[k] = seen.get(k, 1) + 1
+                    out[f"{k} ({seen[k]})"] = v
+                else:
                     out[k] = v
+                    seen[k] = 1
 
     # dl/dt/dd
     for dl in soup.find_all("dl"):
@@ -132,6 +146,12 @@ def parse_module_by_sensors(module: str, html: str) -> dict[str, Any]:
             if low in kv_lower:
                 found = kv_lower[low]
                 break
+
+        # GSM: some firmwares expose a single "Upload / Download" value (e.g. "18.25 GB / 192.26 GB")
+        if module == "gsm" and sensor_key in ("gsm_upload", "gsm_download") and found and "/" in found:
+            parts = [p.strip() for p in found.split("/")]
+            if len(parts) >= 2:
+                found = parts[0] if sensor_key == "gsm_upload" else parts[1]
 
         state_class = spec.get(SENSORS_KEY_CLASS)
         if state_class == SensorStateClass.MEASUREMENT:

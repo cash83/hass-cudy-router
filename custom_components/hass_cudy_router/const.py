@@ -81,6 +81,26 @@ SENSOR_GSM_UPLOAD = "gsm_upload"
 SENSOR_GSM_PUBLIC_IP = "gsm_public_ip"
 SENSOR_GSM_IP_ADDRESS = "gsm_ip_address"
 SENSOR_GSM_CONNECTED_TIME = "gsm_connected_time"
+# Extra GSM/SIM details (Cudy P4 / LuCI gcom status)
+SENSOR_GSM_RSSI = "gsm_rssi"
+SENSOR_GSM_IMSI = "gsm_imsi"
+SENSOR_GSM_IMEI = "gsm_imei"
+SENSOR_GSM_ICCID = "gsm_iccid"
+SENSOR_GSM_MODE = "gsm_mode"
+SENSOR_GSM_MCC = "gsm_mcc"
+SENSOR_GSM_MNC = "gsm_mnc"
+SENSOR_GSM_CELL_ID = "gsm_cell_id"
+SENSOR_GSM_PCID = "gsm_pcid"
+SENSOR_GSM_BAND = "gsm_band"
+SENSOR_GSM_UL_BW = "gsm_ul_bandwidth"
+SENSOR_GSM_DL_BW = "gsm_dl_bandwidth"
+SENSOR_GSM_RSRP = "gsm_rsrp"
+SENSOR_GSM_RSRQ = "gsm_rsrq"
+SENSOR_GSM_SINR = "gsm_sinr"
+SENSOR_GSM_PCC = "gsm_pcc"
+SENSOR_GSM_SCC_1 = "gsm_scc_1"
+SENSOR_GSM_SCC_2 = "gsm_scc_2"
+SENSOR_GSM_SCC_3 = "gsm_scc_3"
 ## SMS
 SENSOR_SMS_INBOX = "sms_inbox"
 SENSOR_SMS_OUTBOX = "sms_outbox"
@@ -243,35 +263,71 @@ SENSORS = {
     MODULE_WAN: [
         {
             SENSORS_KEY_KEY: SENSOR_WAN_TYPE,
-            SENSORS_KEY_DESCRIPTION: ["Protocol", "Connection Type", "Type"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Protocol",
+                "Connection Type",
+                "Type",
+                "WAN Type",
+                "Connection type",
+                "Tipo connessione",
+                "Tipo di connessione",
+            ],
             SENSORS_KEY_ICON: "mdi:transit-connection-variant",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_IP,
-            SENSORS_KEY_DESCRIPTION: ["IP Address", "WAN IP", "Public IP"],
+            SENSORS_KEY_DESCRIPTION: [
+                "IP Address",
+                "WAN IP",
+                "WAN IP address",
+                "WAN IP Address",
+                "Public IP",
+                "Indirizzo IP WAN",
+                "Indirizzo IP",
+            ],
             SENSORS_KEY_ICON: "mdi:network",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_GATEWAY,
-            SENSORS_KEY_DESCRIPTION: ["Gateway", "Default Gateway"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Gateway",
+                "Default Gateway",
+                "WAN Gateway",
+                "Gateway WAN",
+            ],
             SENSORS_KEY_ICON: "mdi:gate-open",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_UPTIME,
-            SENSORS_KEY_DESCRIPTION: ["Connected Time", "Uptime"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Connected Time",
+                "Uptime",
+                "WAN connected time",
+                "WAN Connected Time",
+                "Tempo connessione",
+                "Tempo connessione WAN",
+            ],
             SENSORS_KEY_ICON: "mdi:clock-check",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_DNS,
-            SENSORS_KEY_DESCRIPTION: ["DNS", "DNS Server", "DNS Address", "DNS Addresses"],
+            SENSORS_KEY_DESCRIPTION: [
+                "DNS",
+                "DNS Server",
+                "DNS Address",
+                "DNS Addresses",
+                "WAN DNS addresses",
+                "WAN DNS Addresses",
+                "Indirizzi DNS WAN",
+            ],
             SENSORS_KEY_ICON: "mdi:dns",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
@@ -294,21 +350,38 @@ SENSORS = {
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_GATEWAY,
-            SENSORS_KEY_DESCRIPTION: ["Gateway", "Default Gateway"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Gateway",
+                "Default Gateway",
+                "WAN Gateway",
+                "Gateway WAN",
+            ],
             SENSORS_KEY_ICON: "mdi:gate-open",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_UPTIME,
-            SENSORS_KEY_DESCRIPTION: ["Connected Time", "Uptime"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Connected Time",
+                "WAN connected time",
+                "Uptime",
+                "Tempo connessione",
+            ],
             SENSORS_KEY_ICON: "mdi:clock-check",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_WAN_DNS,
-            SENSORS_KEY_DESCRIPTION: ["DNS", "DNS Server", "DNS Address", "DNS Addresses"],
+            SENSORS_KEY_DESCRIPTION: [
+                "DNS",
+                "DNS Server",
+                "DNS Address",
+                "DNS Addresses",
+                "WAN DNS addresses",
+                "Indirizzi DNS WAN",
+            ],
             SENSORS_KEY_ICON: "mdi:dns",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
@@ -460,35 +533,37 @@ SENSORS = {
     MODULE_GSM: [
         {
             SENSORS_KEY_KEY: SENSOR_GSM_NETWORK_TYPE,
-            SENSORS_KEY_DESCRIPTION: ["Status", "Enabled", "VPN Status"],
+            SENSORS_KEY_DESCRIPTION: ["Network Type", "Network", "Mode", "Access Technology", "Cellular Network", "WAN Mode", "Connection Type", "Type"],
             SENSORS_KEY_ICON: "mdi:transit-connection-variant",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_GSM_DOWNLOAD,
-            SENSORS_KEY_DESCRIPTION: ["Download"],
+            # Some firmwares report a combined "Upload / Download" field.
+            SENSORS_KEY_DESCRIPTION: ["Download", "Upload / Download"],
             SENSORS_KEY_ICON: "mdi:download",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_GSM_UPLOAD,
-            SENSORS_KEY_DESCRIPTION: ["Upload"],
+            # Some firmwares report a combined "Upload / Download" field.
+            SENSORS_KEY_DESCRIPTION: ["Upload", "Upload / Download"],
             SENSORS_KEY_ICON: "mdi:upload",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_GSM_PUBLIC_IP,
-            SENSORS_KEY_DESCRIPTION: ["Public IP Address"],
+            SENSORS_KEY_DESCRIPTION: ["Public IP Address", "Public IP"],
             SENSORS_KEY_ICON: "mdi:web",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
         },
         {
             SENSORS_KEY_KEY: SENSOR_GSM_IP_ADDRESS,
-            SENSORS_KEY_DESCRIPTION: ["Status", "Enabled", "VPN Status"],
+            SENSORS_KEY_DESCRIPTION: ["IP Address", "IP address", "IPv4 Address", "Address", "WAN IP Address", "Local IP Address"],
             SENSORS_KEY_ICON: "mdi:checkbox-marked",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
@@ -499,6 +574,139 @@ SENSORS = {
             SENSORS_KEY_ICON: "mdi:clock-check",
             SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
             SENSORS_KEY_CLASS: None
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_RSSI,
+            SENSORS_KEY_DESCRIPTION: ["RSSI"],
+            SENSORS_KEY_ICON: "mdi:signal",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_IMSI,
+            SENSORS_KEY_DESCRIPTION: ["IMSI"],
+            SENSORS_KEY_ICON: "mdi:sim",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_IMEI,
+            SENSORS_KEY_DESCRIPTION: ["IMEI"],
+            SENSORS_KEY_ICON: "mdi:cellphone",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_ICCID,
+            SENSORS_KEY_DESCRIPTION: ["ICCID"],
+            SENSORS_KEY_ICON: "mdi:sim-alert",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_MODE,
+            SENSORS_KEY_DESCRIPTION: ["Mode"],
+            SENSORS_KEY_ICON: "mdi:cellphone-wireless",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_MCC,
+            SENSORS_KEY_DESCRIPTION: ["MCC"],
+            SENSORS_KEY_ICON: "mdi:identifier",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_MNC,
+            SENSORS_KEY_DESCRIPTION: ["MNC"],
+            SENSORS_KEY_ICON: "mdi:identifier",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_CELL_ID,
+            SENSORS_KEY_DESCRIPTION: ["Cell ID"],
+            SENSORS_KEY_ICON: "mdi:radio-tower",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_PCID,
+            SENSORS_KEY_DESCRIPTION: ["PCID"],
+            SENSORS_KEY_ICON: "mdi:radio-tower",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_BAND,
+            SENSORS_KEY_DESCRIPTION: ["Band"],
+            SENSORS_KEY_ICON: "mdi:radio",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_UL_BW,
+            SENSORS_KEY_DESCRIPTION: ["UL Bandwidth"],
+            SENSORS_KEY_ICON: "mdi:upload-network",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_DL_BW,
+            SENSORS_KEY_DESCRIPTION: ["DL Bandwidth"],
+            SENSORS_KEY_ICON: "mdi:download-network",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_RSRP,
+            SENSORS_KEY_DESCRIPTION: ["RSRP"],
+            SENSORS_KEY_ICON: "mdi:signal",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_RSRQ,
+            SENSORS_KEY_DESCRIPTION: ["RSRQ"],
+            SENSORS_KEY_ICON: "mdi:signal",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_SINR,
+            SENSORS_KEY_DESCRIPTION: ["SINR"],
+            SENSORS_KEY_ICON: "mdi:signal",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_PCC,
+            SENSORS_KEY_DESCRIPTION: ["PCC"],
+            SENSORS_KEY_ICON: "mdi:radio-handheld",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_SCC_1,
+            SENSORS_KEY_DESCRIPTION: ["SCC"],
+            SENSORS_KEY_ICON: "mdi:radio-handheld",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_SCC_2,
+            SENSORS_KEY_DESCRIPTION: ["SCC (2)"],
+            SENSORS_KEY_ICON: "mdi:radio-handheld",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
+        },
+        {
+            SENSORS_KEY_KEY: SENSOR_GSM_SCC_3,
+            SENSORS_KEY_DESCRIPTION: ["SCC (3)"],
+            SENSORS_KEY_ICON: "mdi:radio-handheld",
+            SENSORS_KEY_CATEGORY: EntityCategory.DIAGNOSTIC,
+            SENSORS_KEY_CLASS: None,
         },
     ],
     MODULE_SMS: [
@@ -559,28 +767,55 @@ SENSORS = {
         },
         {
             SENSORS_KEY_KEY: SENSOR_DEVICE_ONLINE,
-            SENSORS_KEY_DESCRIPTION: ["Online", "Online Devices", "Connected"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Online",
+                "Online Devices",
+                "Online devices",
+                "Connected",
+                "Devices Online",
+                "Dispositivi online",
+                "Dispositivi connessi",
+                "Connessi",
+            ],
             SENSORS_KEY_ICON: "mdi:network",
             SENSORS_KEY_CATEGORY: None,
             SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT
         },
         {
             SENSORS_KEY_KEY: SENSOR_DEVICE_BLOCKED,
-            SENSORS_KEY_DESCRIPTION: ["Blocked", "Blocked Devices"],
+            SENSORS_KEY_DESCRIPTION: [
+                "Blocked",
+                "Blocked Devices",
+                "Blocked devices",
+                "Dispositivi bloccati",
+                "Bloccati",
+            ],
             SENSORS_KEY_ICON: "mdi:network-off",
             SENSORS_KEY_CATEGORY: None,
             SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT
         },
         {
             SENSORS_KEY_KEY: SENSOR_DEVICE_WIFI_24_COUNT,
-            SENSORS_KEY_DESCRIPTION: ["2.4G WiFi"],
+            SENSORS_KEY_DESCRIPTION: [
+                "2.4G WiFi",
+                "2.4 GHz Wi-Fi devices connected",
+                "2.4 GHz WiFi devices connected",
+                "2.4 GHz Wi-Fi",
+                "WiFi 2.4G",
+            ],
             SENSORS_KEY_ICON: "mdi:wifi",
             SENSORS_KEY_CATEGORY: None,
             SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT
         },
         {
             SENSORS_KEY_KEY: SENSOR_DEVICE_WIFI_5_COUNT,
-            SENSORS_KEY_DESCRIPTION: ["5G WiFi"],
+            SENSORS_KEY_DESCRIPTION: [
+                "5G WiFi",
+                "5 GHz Wi-Fi devices connected",
+                "5 GHz WiFi devices connected",
+                "5 GHz Wi-Fi",
+                "WiFi 5G",
+            ],
             SENSORS_KEY_ICON: "mdi:wifi-star",
             SENSORS_KEY_CATEGORY: None,
             SENSORS_KEY_CLASS: SensorStateClass.MEASUREMENT
@@ -706,7 +941,12 @@ CAPABILITY_URLS = {
         "/admin/network/mesh/status?detail=1",
     ],
     MODULE_VPN: [
+        # Firmware-dependent. Some builds expose only config pages (CBI) and no dedicated status page.
         "/admin/network/vpn/status?detail=1",
+        "/admin/network/vpn/config?nomodal=",
+        "/admin/network/vpn?nomodal=",
+        "/admin/network/vpn",
+        "/admin/network/vpn/wireguards?embedded=&nomodal=",
     ],
     MODULE_WIRELESS_5G: [
         "/admin/network/wireless/status?detail=1&iface=wlan10",
@@ -718,7 +958,11 @@ CAPABILITY_URLS = {
         "/admin/network/wireless/status?detail=1&iface=wlan20",
     ],
     MODULE_GSM: [
+        "/admin/network/gcom/status?detail=1&iface=4g",
         "/admin/network/gcom/iface/4g/status?detail=1",
+        "/admin/network/gcom?iface=4g",
+        "/admin/network/gcom/iface/4g",
+        "/admin/network/gcom",
     ],
     MODULE_SMS: [
         "/admin/network/gcom/sms/iface/4g/status?detail=1",

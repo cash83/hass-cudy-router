@@ -31,6 +31,13 @@ WIFI_5 = SwitchEntityDescription(
     icon="mdi:wifi",
 )
 
+VPN_WIREGUARD = SwitchEntityDescription(
+    key="vpn_wireguard",
+    name="VPN WireGuard",
+    icon="mdi:vpn",
+)
+
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -39,6 +46,7 @@ async def async_setup_entry(
         [
             CudyWifiSwitch(hass, entry, band="2g", description=WIFI_24),
             CudyWifiSwitch(hass, entry, band="5g", description=WIFI_5),
+            CudyVpnSwitch(hass, entry, description=VPN_WIREGUARD),
         ]
     )
 
@@ -131,7 +139,7 @@ class CudyWifiSwitch(SwitchEntity):
 
         # Prova async_set_wifi(band, enabled) dove disponibile
         setter = None
-        for obj in (integration, coordinator, client):
+        for obj in (client, integration, coordinator):
             fn = getattr(obj, "async_set_wifi", None)
             if callable(fn):
                 setter = fn
@@ -148,5 +156,102 @@ class CudyWifiSwitch(SwitchEntity):
             await setter(enabled)
 
         # Dopo il comando: rileggi lo stato reale e aggiorna HA
+        await self.async_update()
+        self.async_write_ha_state()
+
+
+class CudyVpnSwitch(SwitchEntity):
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        description: SwitchEntityDescription,
+    ) -> None:
+        self.hass = hass
+        self._entry = entry
+        self.entity_description = description
+
+        entry_data = getattr(entry, "data", {}) or {}
+        self._host = entry_data.get("host", "") if isinstance(entry_data, dict) else ""
+
+        self._attr_unique_id = f"{entry.entry_id}_vpn_wireguard"
+        self._attr_is_on = False
+
+    def _get_objects(self) -> tuple[Any, Any, Any]:
+        data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+        return data.get("client"), data.get("integration"), data.get("coordinator")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        stable_id = getattr(self._entry, "unique_id", None) or self._host or self._entry.entry_id
+
+        data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+        coordinator = data.get("coordinator")
+        coord_data = getattr(coordinator, "data", None) or {}
+        system = coord_data.get(MODULE_SYSTEM, {}) if isinstance(coord_data, dict) else {}
+
+        model = system.get(SENSOR_SYSTEM_MODEL) if isinstance(system, dict) else None
+        sw_version = None
+        if isinstance(system, dict):
+            sw_version = system.get(SENSOR_SYSTEM_FIRMWARE_VERSION) or system.get(SENSOR_SYSTEM_HARDWARE)
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, stable_id)},
+            name=f"Cudy Router ({self._host})" if self._host else "Cudy Router",
+            manufacturer="Cudy",
+            model=model,
+            sw_version=sw_version,
+        )
+
+    async def async_added_to_hass(self) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
+
+    async def async_update(self) -> None:
+        client, integration, coordinator = self._get_objects()
+
+        getter = None
+        for obj in (client, integration, coordinator):
+            fn = getattr(obj, "async_get_vpn_state", None)
+            if callable(fn):
+                getter = fn
+                break
+        if not getter:
+            return
+
+        try:
+            st = await getter()  # atteso: {"wireguard": bool}
+            if isinstance(st, dict) and "wireguard" in st:
+                self._attr_is_on = bool(st["wireguard"])
+        except Exception as e:
+            _LOGGER.debug("VPN state read failed: %s", e)
+
+    async def async_turn_on(self) -> None:
+        await self._set_vpn(True)
+
+    async def async_turn_off(self) -> None:
+        await self._set_vpn(False)
+
+    async def _set_vpn(self, enabled: bool) -> None:
+        client, integration, coordinator = self._get_objects()
+
+        setter = None
+        for obj in (client, integration, coordinator):
+            fn = getattr(obj, "async_set_vpn", None)
+            if callable(fn):
+                setter = fn
+                break
+        if not setter:
+            _LOGGER.error("VPN switch pressed but no async_set_vpn() found in integration/coordinator/client")
+            return
+
+        try:
+            await setter(enabled)
+        except Exception as e:
+            _LOGGER.error("VPN set failed: %s", e)
+            return
+
         await self.async_update()
         self.async_write_ha_state()

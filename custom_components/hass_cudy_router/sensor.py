@@ -48,7 +48,11 @@ async def async_setup_entry(
                 continue
 
             # create sensor only if API actually returned a value for it
+            # (avoid flooding HA with "Unknown" entities on firmwares that
+            # don't expose certain fields/features).
             if sensor_key not in module_data:
+                continue
+            if module_data.get(sensor_key) is None:
                 continue
 
             entities.append(

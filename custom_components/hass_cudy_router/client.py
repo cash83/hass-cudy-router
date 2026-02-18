@@ -522,6 +522,222 @@ class CudyClient:
         }
 
 
+
+# ------------------------------------------------------------------
+# VPN control (WireGuard via LuCI CBI form)
+# ------------------------------------------------------------------
+    async def async_get_vpn_state(self) -> dict[str, bool]:
+        """Ritorna lo stato VPN WireGuard (enabled/disabled).
+
+        Firmware Cudy possono esporre il toggle su pagine diverse:
+        - /admin/network/vpn/config?nomodal=
+        - /admin/network/vpn (pagina principale)
+        """
+        await self.ensure_authenticated()
+        session = await self._ensure_session()
+
+        ts = int(time.time() * 1000)
+        urls = [
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn?_={ts}",
+        ]
+
+        headers = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self.base_url}/cgi-bin/luci/admin/network/vpn",
+        }
+        if self.sysauth:
+            headers["Cookie"] = f"sysauth={self.sysauth}"
+
+        last_err: Exception | None = None
+        for url in urls:
+            try:
+                async with session.get(url, headers=headers, allow_redirects=True) as resp:
+                    html = await resp.text()
+
+                if not html:
+                    raise RuntimeError(f"Empty VPN page: {url}")
+
+                soup = BeautifulSoup(html, "html.parser")
+                form = soup.find("form", {"name": "cbi"}) or soup.find("form")
+                if not form:
+                    # a volte torna una pagina di login o altro
+                    raise RuntimeError("VPN form not found")
+
+                # prova 1: match esatto
+                inp = form.find("input", {"name": "cbid.vpn.config.enabled"})
+                if inp and inp.has_attr("value"):
+                    enabled_val = str(inp["value"]).strip()
+                    return {"wireguard": (enabled_val == "1")}
+
+                # prova 2: cerca un input che termina con '.enabled' e contiene 'vpn.config'
+                enabled_val = None
+                for el in form.find_all("input"):
+                    name = (el.get("name") or "").strip()
+                    if "vpn.config" in name and name.endswith(".enabled") and el.has_attr("value"):
+                        enabled_val = str(el["value"]).strip()
+                        break
+                if enabled_val is not None:
+                    return {"wireguard": (enabled_val == "1")}
+
+                # prova 3: alcuni firmware usano checkbox checked (raro qui)
+                cb = form.find("input", {"type": "checkbox"})
+                if cb and (cb.get("name") or "").endswith("enabled"):
+                    return {"wireguard": cb.has_attr("checked")}
+
+                raise RuntimeError("VPN enabled field not found")
+            except Exception as e:
+                last_err = e
+                continue
+
+        raise RuntimeError(f"VPN state read failed: {last_err}")
+
+    async def async_set_vpn(self, enabled: bool) -> bool:
+        """Abilita/disabilita WireGuard Server (toggle Enable) preservando gli altri campi."""
+        await self.ensure_authenticated()
+        session = await self._ensure_session()
+    
+        ts = int(time.time() * 1000)
+        get_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}"
+    
+        headers_get = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+        }
+        if self.sysauth:
+            headers_get["Cookie"] = f"sysauth={self.sysauth}"
+    
+        async with session.get(get_url, headers=headers_get, allow_redirects=True) as resp:
+            html = await resp.text()
+    
+        if not html:
+            _LOGGER.error("VPN GET config returned empty page")
+            return False
+    
+        soup = BeautifulSoup(html, "html.parser")
+        form = soup.find("form", {"name": "cbi"}) or soup.find("form")
+        if not form:
+            _LOGGER.error("VPN config form not found")
+            return False
+    
+        # Estrai token (serve anche per restart firewall)
+        token_val = None
+        token_inp = form.find("input", {"name": "token"})
+        if token_inp and token_inp.has_attr("value"):
+            token_val = str(token_inp["value"]).strip()
+    
+        # timeclock (se c'è, aggiornalo)
+        timeclock_val = None
+        tc_inp = form.find("input", {"name": "timeclock"})
+        if tc_inp and tc_inp.has_attr("value"):
+            timeclock_val = str(int(time.time()))
+    
+        # Colleziona TUTTI i campi input/select/textarea
+        fields: dict[str, str] = {}
+        for el in form.find_all(["input", "select", "textarea"]):
+            name = el.get("name")
+            if not name:
+                continue
+            # skip buttons
+            if el.name == "input" and el.get("type") in ("submit", "button", "image", "reset"):
+                continue
+            if el.name == "select":
+                opt = el.find("option", selected=True) or el.find("option")
+                if opt and opt.has_attr("value"):
+                    fields[name] = str(opt["value"])
+                continue
+            if el.name == "textarea":
+                fields[name] = el.text or ""
+                continue
+    
+            # input
+            typ = (el.get("type") or "").lower()
+            if typ in ("checkbox", "radio"):
+                # CBI spesso usa un hidden + checkbox; noi prendiamo value così com'è
+                if el.has_attr("checked"):
+                    fields[name] = str(el.get("value") or "1")
+                else:
+                    # se c'è già un valore dal hidden, non sovrascrivere
+                    fields.setdefault(name, str(el.get("value") or "0"))
+            else:
+                if el.has_attr("value"):
+                    fields[name] = str(el["value"])
+    
+        # Forza campi come da cattura browser
+        fields["cbi.submit"] = fields.get("cbi.submit", "1")
+        fields["cbi.apply"] = fields.get("cbi.apply", "1")
+        fields["cbi.cbe.vpn.config.enabled"] = "1"
+        fields["cbid.vpn.config.enabled"] = "1" if enabled else "0"
+    
+        if timeclock_val is not None:
+            fields["timeclock"] = timeclock_val
+    
+        # POST multipart
+        post_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal="
+        headers_post = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+            "Origin": self.base_url,
+        }
+        if self.sysauth:
+            headers_post["Cookie"] = f"sysauth={self.sysauth}"
+    
+        formdata = aiohttp.FormData()
+        for k, v in fields.items():
+            formdata.add_field(k, v)
+    
+        try:
+            async with session.post(post_url, data=formdata, headers=headers_post, allow_redirects=False) as resp:
+                _ = await resp.text()
+                loc = resp.headers.get("Location")
+                if resp.status not in (200, 302, 303):
+                    _LOGGER.error("VPN POST failed status=%s", resp.status)
+                    return False
+        except Exception as e:
+            _LOGGER.error("VPN POST exception: %s", e)
+            return False
+    
+        # segui location (optional) per coerenza con UI
+        if loc:
+            try:
+                if not loc.startswith("http"):
+                    loc_url = f"{self.base_url}{loc}"
+                else:
+                    loc_url = loc
+                async with session.get(loc_url, headers=headers_get, allow_redirects=True) as _r:
+                    await _r.text()
+            except Exception:
+                pass
+    
+        # Applica: restart firewall (come fa la UI)
+        if token_val:
+            try:
+                svc_url = f"{self.base_url}/cgi-bin/luci/admin/servicectl/restart/firewall"
+                data = {"token": token_val}
+                headers_svc = {
+                    "User-Agent": "hass-cudy-router",
+                    "Accept": "*/*",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+                    "Origin": self.base_url,
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                }
+                if self.sysauth:
+                    headers_svc["Cookie"] = f"sysauth={self.sysauth}"
+    
+                async with session.post(svc_url, data=data, headers=headers_svc) as _r:
+                    await _r.text()
+            except Exception as e:
+                _LOGGER.debug("VPN restart firewall failed: %s", e)
+    
+        return True
+
     # ------------------------------------------------------------------
     # Helper for tests / convenience
     # ------------------------------------------------------------------
