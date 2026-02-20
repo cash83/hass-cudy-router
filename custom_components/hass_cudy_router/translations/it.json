@@ -1,0 +1,133 @@
+{
+  "title": "Cudy Router",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configura Cudy Router",
+        "description": "Inserisci i dettagli di connessione per il tuo router Cudy."
+      }
+    },
+    "error": {
+      "invalid_auth": "Nome utente o password non validi.",
+      "cannot_connect": "Impossibile connettersi al router.",
+      "unknown": "Errore imprevisto."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Cudy Router",
+        "description": "Configura l'intervallo di polling e i dispositivi tracciati."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "info_work_mode": { "name": "Modalità operativa" },
+      "info_interface": { "name": "Interfaccia" },
+
+      "system_firmware_version": { "name": "Versione firmware" },
+      "system_model": { "name": "Modello" },
+      "system_hardware": { "name": "Hardware" },
+      "system_uptime": { "name": "Uptime" },
+      "system_localtime": { "name": "Ora locale" },
+
+      "mesh_network": { "name": "Rete mesh" },
+      "mesh_units": { "name": "Unità mesh" },
+
+      "wan_public_ip": { "name": "IP pubblico" },
+      "wan_ip": { "name": "IP WAN" },
+      "wan_dns": { "name": "DNS WAN" },
+      "wan_type": { "name": "Tipo WAN" },
+      "wan_uptime": { "name": "Uptime WAN" },
+      "wan_gateway": { "name": "Gateway WAN" },
+      "wan_mode": { "name": "Modalità WAN" },
+
+      "lan_ip": { "name": "IP LAN" },
+      "lan_subnet": { "name": "Subnet LAN" },
+      "lan_mac": { "name": "MAC LAN" },
+
+      "24g_wifi_ssid": { "name": "SSID Wi-Fi 2.4 GHz" },
+      "24g_wifi_bssid": { "name": "BSSID Wi-Fi 2.4 GHz" },
+      "24g_wifi_encryption": { "name": "Crittografia Wi-Fi 2.4 GHz" },
+      "24g_wifi_channel": { "name": "Canale Wi-Fi 2.4 GHz" },
+
+      "5g_wifi_ssid": { "name": "SSID Wi-Fi 5 GHz" },
+      "5g_wifi_bssid": { "name": "BSSID Wi-Fi 5 GHz" },
+      "5g_wifi_encryption": { "name": "Crittografia Wi-Fi 5 GHz" },
+      "5g_wifi_channel": { "name": "Canale Wi-Fi 5 GHz" },
+
+      "6g_wifi_ssid": { "name": "SSID Wi-Fi 6 GHz" },
+      "6g_wifi_bssid": { "name": "BSSID Wi-Fi 6 GHz" },
+      "6g_wifi_encryption": { "name": "Crittografia Wi-Fi 6 GHz" },
+      "6g_wifi_channel": { "name": "Canale Wi-Fi 6 GHz" },
+
+      "gsm_network_type": { "name": "Tipo rete (LTE / 5G)" },
+      "gsm_download": { "name": "Download rete mobile" },
+      "gsm_upload": { "name": "Upload rete mobile" },
+      "gsm_public_ip": { "name": "IP pubblico (rete mobile)" },
+      "gsm_ip_address": { "name": "IP rete mobile" },
+      "gsm_connected_time": { "name": "Tempo connessione rete mobile" },
+
+      "gsm_rssi": { "name": "Segnale mobile (RSSI)" },
+      "gsm_rsrp": { "name": "Segnale LTE (RSRP)" },
+      "gsm_rsrq": { "name": "Qualità LTE (RSRQ)" },
+      "gsm_sinr": { "name": "Qualità LTE (SINR)" },
+
+      "gsm_imsi": { "name": "IMSI SIM" },
+      "gsm_imei": { "name": "IMEI modem" },
+      "gsm_iccid": { "name": "ICCID SIM" },
+
+      "gsm_mode": { "name": "Modalità radio (FDD/TDD)" },
+      "gsm_mcc": { "name": "MCC (Paese)" },
+      "gsm_mnc": { "name": "MNC (Operatore)" },
+      "gsm_cell_id": { "name": "Cell ID" },
+      "gsm_pcid": { "name": "PCI cella" },
+
+      "gsm_band": { "name": "Banda LTE primaria" },
+      "gsm_ul_bandwidth": { "name": "Banda UL (MHz)" },
+      "gsm_dl_bandwidth": { "name": "Banda DL (MHz)" },
+
+      "gsm_pcc": { "name": "4G/5G" },
+      "gsm_scc_1": { "name": "4G" },
+      "gsm_scc_2": { "name": "4G/5G" },
+      "gsm_scc_3": { "name": "5G" },
+
+      "gsm_5g_band_1": { "name": "Banda 5G attiva 1" },
+      "gsm_5g_band_2": { "name": "Banda 5G attiva 2" },
+
+      "sms_inbox": { "name": "SMS in arrivo" },
+      "sms_outbox": { "name": "SMS in uscita" },
+
+      "device_count": { "name": "Dispositivi totali connessi" },
+      "device_wifi_24_device_count": { "name": "Dispositivi Wi-Fi 2.4 GHz connessi" },
+      "device_wifi_5_device_count": { "name": "Dispositivi Wi-Fi 5 GHz connessi" },
+      "device_wired_device_count": { "name": "Dispositivi cablati connessi" },
+      "device_mesh_device_count": { "name": "Dispositivi mesh connessi" },
+      "device_online": { "name": "Dispositivi online" },
+      "device_blocked": { "name": "Dispositivi bloccati" },
+
+      "dhcp_ip_start": { "name": "Inizio intervallo IP DHCP" },
+      "dhcp_ip_end": { "name": "Fine intervallo IP DHCP" },
+      "dhcp_dns_primary": { "name": "DNS primario" },
+      "dhcp_dns_secondary": { "name": "DNS secondario" },
+      "dhcp_gateway": { "name": "Gateway predefinito" },
+      "dhcp_lease_time": { "name": "Durata lease DHCP" },
+
+      "usb_sharing": { "name": "Stato condivisione USB" },
+      "usb_tethering": { "name": "Stato tethering USB" },
+
+      "vpn_enabled": { "name": "VPN attiva" },
+      "vpn_tunnels": { "name": "Tunnel VPN" }
+    },
+    "button": {
+      "reboot": { "name": "Riavvia router" }
+    }
+  },
+  "services": {
+    "reboot": {
+      "name": "Riavvia router",
+      "description": "Riavvia il router Cudy."
+    }
+  }
+}
