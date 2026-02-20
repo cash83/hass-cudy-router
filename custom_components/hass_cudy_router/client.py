@@ -295,6 +295,84 @@ class CudyClient:
         return await self.post(f"/cgi-bin/luci{luci_path}", data=data)
 
     # ------------------------------------------------------------------
+    # Cudy servicectl (runtime apply) helpers
+    # ------------------------------------------------------------------
+    _RE_TOKEN_JS = re.compile(r"token\s*:\s*'([0-9a-fA-F]{16,64})'")
+
+    def _extract_token_anywhere(self, html: str) -> Optional[str]:
+        """Try to extract the Cudy CSRF token from HTML/JS."""
+        if not html:
+            return None
+        # 1) classic hidden input
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            inp = soup.find("input", {"name": "token"})
+            if inp and inp.has_attr("value"):
+                t = str(inp["value"]).strip()
+                if t:
+                    return t
+        except Exception:
+            pass
+        # 2) JS snippet: token: '...'
+        m = self._RE_TOKEN_JS.search(html)
+        if m:
+            return m.group(1)
+        return None
+
+    async def _servicectl_restart(self, services: str, token: str, *, timeout_s: int = 35) -> bool:
+        """Restart services via Cudy OEM endpoint and wait for finish."""
+        await self.ensure_authenticated()
+        session = await self._ensure_session()
+
+        svc_url = f"{self.base_url}/cgi-bin/luci/admin/servicectl/restart/{services}"
+        st_url = f"{self.base_url}/cgi-bin/luci/admin/servicectl/status"
+
+        headers_post = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+            "Origin": self.base_url,
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        }
+        headers_get = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+            "Origin": self.base_url,
+        }
+        if self.sysauth:
+            headers_post["Cookie"] = f"sysauth={self.sysauth}"
+            headers_get["Cookie"] = f"sysauth={self.sysauth}"
+
+        # Start restart
+        try:
+            async with session.post(svc_url, data={"token": token}, headers=headers_post, allow_redirects=True) as r:
+                _ = await r.text()
+                if r.status >= 400:
+                    _LOGGER.debug("servicectl restart %s failed status=%s", services, r.status)
+                    return False
+        except Exception as e:
+            _LOGGER.debug("servicectl restart %s exception: %s", services, e)
+            return False
+
+        # Poll status until 'finish'
+        deadline = time.time() + float(timeout_s)
+        while time.time() < deadline:
+            try:
+                async with session.get(st_url, headers=headers_get, allow_redirects=True) as r2:
+                    txt = (await r2.text()).strip().lower()
+                    if txt == "finish":
+                        return True
+            except Exception:
+                pass
+            await asyncio.sleep(1)
+
+        _LOGGER.debug("servicectl status timeout for %s", services)
+        return False
+
+    # ------------------------------------------------------------------
     # Wi-Fi control (Cudy custom UI / JSON endpoint)
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -469,6 +547,14 @@ class CudyClient:
                 )
                 if resp2.status >= 400:
                     return False
+
+                # Apply runtime changes like the Cudy UI (restart wireless,vlan)
+                tok = self._extract_token_anywhere(body2) or self._extract_token_anywhere(html) or token
+                if tok:
+                    ok_apply = await self._servicectl_restart('wireless,vlan', tok, timeout_s=35)
+                    _LOGGER.debug('Wi-Fi servicectl apply wireless,vlan -> %s', ok_apply)
+                else:
+                    _LOGGER.debug('Wi-Fi servicectl token not found; skipping servicectl apply')
         except Exception as e:
             _LOGGER.error("Wi-Fi POST uncombine exception: %s", e)
             return False
