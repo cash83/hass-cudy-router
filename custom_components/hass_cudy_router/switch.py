@@ -37,6 +37,11 @@ VPN_WIREGUARD = SwitchEntityDescription(
     icon="mdi:vpn",
 )
 
+ZEROTIER = SwitchEntityDescription(
+    key="zerotier",
+    name="ZeroTier",
+    icon="mdi:lan-connect",
+)
 
 
 async def async_setup_entry(
@@ -47,6 +52,7 @@ async def async_setup_entry(
             CudyWifiSwitch(hass, entry, band="2g", description=WIFI_24),
             CudyWifiSwitch(hass, entry, band="5g", description=WIFI_5),
             CudyVpnSwitch(hass, entry, description=VPN_WIREGUARD),
+            CudyZeroTierSwitch(hass, entry, description=ZEROTIER),
         ]
     )
 
@@ -251,6 +257,103 @@ class CudyVpnSwitch(SwitchEntity):
             await setter(enabled)
         except Exception as e:
             _LOGGER.error("VPN set failed: %s", e)
+            return
+
+        await self.async_update()
+        self.async_write_ha_state()
+
+
+class CudyZeroTierSwitch(SwitchEntity):
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        description: SwitchEntityDescription,
+    ) -> None:
+        self.hass = hass
+        self._entry = entry
+        self.entity_description = description
+
+        entry_data = getattr(entry, "data", {}) or {}
+        self._host = entry_data.get("host", "") if isinstance(entry_data, dict) else ""
+
+        self._attr_unique_id = f"{entry.entry_id}_zerotier"
+        self._attr_is_on = False
+
+    def _get_objects(self) -> tuple[Any, Any, Any]:
+        data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+        return data.get("client"), data.get("integration"), data.get("coordinator")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        stable_id = getattr(self._entry, "unique_id", None) or self._host or self._entry.entry_id
+
+        data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+        coordinator = data.get("coordinator")
+        coord_data = getattr(coordinator, "data", None) or {}
+        system = coord_data.get(MODULE_SYSTEM, {}) if isinstance(coord_data, dict) else {}
+
+        model = system.get(SENSOR_SYSTEM_MODEL) if isinstance(system, dict) else None
+        sw_version = None
+        if isinstance(system, dict):
+            sw_version = system.get(SENSOR_SYSTEM_FIRMWARE_VERSION) or system.get(SENSOR_SYSTEM_HARDWARE)
+
+        return DeviceInfo(
+            identifiers={(DOMAIN, stable_id)},
+            name=f"Cudy Router ({self._host})" if self._host else "Cudy Router",
+            manufacturer="Cudy",
+            model=model,
+            sw_version=sw_version,
+        )
+
+    async def async_added_to_hass(self) -> None:
+        await self.async_update()
+        self.async_write_ha_state()
+
+    async def async_update(self) -> None:
+        client, integration, coordinator = self._get_objects()
+
+        getter = None
+        for obj in (client, integration, coordinator):
+            fn = getattr(obj, "async_get_zerotier_state", None)
+            if callable(fn):
+                getter = fn
+                break
+        if not getter:
+            return
+
+        try:
+            st = await getter()
+            if isinstance(st, dict) and "zerotier" in st:
+                self._attr_is_on = bool(st["zerotier"])
+        except Exception as e:
+            _LOGGER.debug("ZeroTier state read failed: %s", e)
+
+    async def async_turn_on(self) -> None:
+        await self._set_zerotier(True)
+
+    async def async_turn_off(self) -> None:
+        await self._set_zerotier(False)
+
+    async def _set_zerotier(self, enabled: bool) -> None:
+        client, integration, coordinator = self._get_objects()
+
+        setter = None
+        for obj in (client, integration, coordinator):
+            fn = getattr(obj, "async_set_zerotier", None)
+            if callable(fn):
+                setter = fn
+                break
+        if not setter:
+            _LOGGER.error("ZeroTier switch pressed but no async_set_zerotier() found in integration/coordinator/client")
+            return
+
+        try:
+            await setter(enabled)
+        except Exception as e:
+            _LOGGER.error("ZeroTier set failed: %s", e)
             return
 
         await self.async_update()

@@ -610,29 +610,30 @@ class CudyClient:
 
 
 # ------------------------------------------------------------------
-# VPN control (WireGuard via LuCI CBI form)
+# VPN / ZeroTier control (LuCI CBI form)
 # ------------------------------------------------------------------
-    async def async_get_vpn_state(self) -> dict[str, bool]:
-        """Ritorna lo stato VPN WireGuard (enabled/disabled).
+    _VPN_GENERIC_PROTO = "cbid.vpn.config._proto"
+    _VPN_GENERIC_ENABLED = "cbid.vpn.config.enabled"
+    _VPN_GENERIC_ENABLED_HELPER = "cbi.cbe.vpn.config.enabled"
+    _ZEROTIER_DEDICATED_ENABLED = "cbid.zerotier.client.enabled"
+    _ZEROTIER_DEDICATED_ENABLED_HELPER = "cbi.cbe.zerotier.client.enabled"
+    _ZEROTIER_PROTO_VALUES = {"zerotier", "zerotiers"}
+    _WIREGUARD_PROTO_VALUES = {"wireguard", "wireguards"}
 
-        Firmware Cudy possono esporre il toggle su pagine diverse:
-        - /admin/network/vpn/config?nomodal=
-        - /admin/network/vpn (pagina principale)
-        """
+    async def _fetch_luci_form(
+        self,
+        urls: list[str],
+        *,
+        referer: str,
+    ) -> tuple[str, BeautifulSoup, Any, str]:
         await self.ensure_authenticated()
         session = await self._ensure_session()
-
-        ts = int(time.time() * 1000)
-        urls = [
-            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}",
-            f"{self.base_url}/cgi-bin/luci/admin/network/vpn?_={ts}",
-        ]
 
         headers = {
             "User-Agent": "hass-cudy-router",
             "Accept": "*/*",
             "X-Requested-With": "XMLHttpRequest",
-            "Referer": f"{self.base_url}/cgi-bin/luci/admin/network/vpn",
+            "Referer": referer,
         }
         if self.sysauth:
             headers["Cookie"] = f"sysauth={self.sysauth}"
@@ -642,186 +643,303 @@ class CudyClient:
             try:
                 async with session.get(url, headers=headers, allow_redirects=True) as resp:
                     html = await resp.text()
-
                 if not html:
-                    raise RuntimeError(f"Empty VPN page: {url}")
-
+                    raise RuntimeError(f"Empty page: {url}")
                 soup = BeautifulSoup(html, "html.parser")
                 form = soup.find("form", {"name": "cbi"}) or soup.find("form")
                 if not form:
-                    # a volte torna una pagina di login o altro
-                    raise RuntimeError("VPN form not found")
-
-                # prova 1: match esatto
-                inp = form.find("input", {"name": "cbid.vpn.config.enabled"})
-                if inp and inp.has_attr("value"):
-                    enabled_val = str(inp["value"]).strip()
-                    return {"wireguard": (enabled_val == "1")}
-
-                # prova 2: cerca un input che termina con '.enabled' e contiene 'vpn.config'
-                enabled_val = None
-                for el in form.find_all("input"):
-                    name = (el.get("name") or "").strip()
-                    if "vpn.config" in name and name.endswith(".enabled") and el.has_attr("value"):
-                        enabled_val = str(el["value"]).strip()
-                        break
-                if enabled_val is not None:
-                    return {"wireguard": (enabled_val == "1")}
-
-                # prova 3: alcuni firmware usano checkbox checked (raro qui)
-                cb = form.find("input", {"type": "checkbox"})
-                if cb and (cb.get("name") or "").endswith("enabled"):
-                    return {"wireguard": cb.has_attr("checked")}
-
-                raise RuntimeError("VPN enabled field not found")
+                    raise RuntimeError(f"CBI form not found in {url}")
+                return html, soup, form, url
             except Exception as e:
                 last_err = e
                 continue
+        raise RuntimeError(f"Unable to fetch LuCI form: {last_err}")
 
-        raise RuntimeError(f"VPN state read failed: {last_err}")
+    @staticmethod
+    def _form_value(form: Any, name: str) -> str | None:
+        inp = form.find("input", {"name": name})
+        if inp and inp.has_attr("value"):
+            return str(inp["value"])
+        sel = form.find("select", {"name": name})
+        if sel:
+            opt = sel.find("option", selected=True) or sel.find("option")
+            if opt and opt.has_attr("value"):
+                return str(opt["value"])
+        ta = form.find("textarea", {"name": name})
+        if ta is not None:
+            return ta.text or ""
+        return None
 
-    async def async_set_vpn(self, enabled: bool) -> bool:
-        """Abilita/disabilita WireGuard Server (toggle Enable) preservando gli altri campi."""
-        await self.ensure_authenticated()
-        session = await self._ensure_session()
-    
-        ts = int(time.time() * 1000)
-        get_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}"
-    
-        headers_get = {
-            "User-Agent": "hass-cudy-router",
-            "Accept": "*/*",
-            "X-Requested-With": "XMLHttpRequest",
-            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
-        }
-        if self.sysauth:
-            headers_get["Cookie"] = f"sysauth={self.sysauth}"
-    
-        async with session.get(get_url, headers=headers_get, allow_redirects=True) as resp:
-            html = await resp.text()
-    
-        if not html:
-            _LOGGER.error("VPN GET config returned empty page")
-            return False
-    
-        soup = BeautifulSoup(html, "html.parser")
-        form = soup.find("form", {"name": "cbi"}) or soup.find("form")
-        if not form:
-            _LOGGER.error("VPN config form not found")
-            return False
-    
-        # Estrai token (serve anche per restart firewall)
-        token_val = None
-        token_inp = form.find("input", {"name": "token"})
-        if token_inp and token_inp.has_attr("value"):
-            token_val = str(token_inp["value"]).strip()
-    
-        # timeclock (se c'è, aggiornalo)
-        timeclock_val = None
-        tc_inp = form.find("input", {"name": "timeclock"})
-        if tc_inp and tc_inp.has_attr("value"):
-            timeclock_val = str(int(time.time()))
-    
-        # Colleziona TUTTI i campi input/select/textarea
+    @staticmethod
+    def _build_form_fields(form: Any) -> dict[str, str]:
         fields: dict[str, str] = {}
         for el in form.find_all(["input", "select", "textarea"]):
             name = el.get("name")
             if not name:
                 continue
-            # skip buttons
-            if el.name == "input" and el.get("type") in ("submit", "button", "image", "reset"):
+
+            if el.name == "input" and el.get("type") in ("submit", "button", "image", "reset", "password"):
                 continue
+
             if el.name == "select":
                 opt = el.find("option", selected=True) or el.find("option")
                 if opt and opt.has_attr("value"):
                     fields[name] = str(opt["value"])
                 continue
+
             if el.name == "textarea":
                 fields[name] = el.text or ""
                 continue
-    
-            # input
+
             typ = (el.get("type") or "").lower()
             if typ in ("checkbox", "radio"):
-                # CBI spesso usa un hidden + checkbox; noi prendiamo value così com'è
                 if el.has_attr("checked"):
                     fields[name] = str(el.get("value") or "1")
                 else:
-                    # se c'è già un valore dal hidden, non sovrascrivere
                     fields.setdefault(name, str(el.get("value") or "0"))
             else:
                 if el.has_attr("value"):
                     fields[name] = str(el["value"])
-    
-        # Forza campi come da cattura browser
-        fields["cbi.submit"] = fields.get("cbi.submit", "1")
-        fields["cbi.apply"] = fields.get("cbi.apply", "1")
-        fields["cbi.cbe.vpn.config.enabled"] = "1"
-        fields["cbid.vpn.config.enabled"] = "1" if enabled else "0"
-    
-        if timeclock_val is not None:
-            fields["timeclock"] = timeclock_val
-    
-        # POST multipart
-        post_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal="
+        return fields
+
+    async def _post_luci_form(
+        self,
+        post_url: str,
+        fields: dict[str, str],
+        *,
+        referer: str,
+        headers_get_referer: str,
+        default_follow_url: str | None = None,
+    ) -> tuple[bool, str | None]:
+        await self.ensure_authenticated()
+        session = await self._ensure_session()
+
         headers_post = {
             "User-Agent": "hass-cudy-router",
             "Accept": "*/*",
             "X-Requested-With": "XMLHttpRequest",
-            "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
+            "Referer": referer,
             "Origin": self.base_url,
         }
+        headers_get = {
+            "User-Agent": "hass-cudy-router",
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": headers_get_referer,
+        }
         if self.sysauth:
-            headers_post["Cookie"] = f"sysauth={self.sysauth}"
-    
+            cookie = f"sysauth={self.sysauth}"
+            headers_post["Cookie"] = cookie
+            headers_get["Cookie"] = cookie
+
         formdata = aiohttp.FormData()
         for k, v in fields.items():
-            formdata.add_field(k, v)
-    
-        try:
-            async with session.post(post_url, data=formdata, headers=headers_post, allow_redirects=False) as resp:
-                _ = await resp.text()
-                loc = resp.headers.get("Location")
-                if resp.status not in (200, 302, 303):
-                    _LOGGER.error("VPN POST failed status=%s", resp.status)
-                    return False
-        except Exception as e:
-            _LOGGER.error("VPN POST exception: %s", e)
-            return False
-    
-        # segui location (optional) per coerenza con UI
+            formdata.add_field(k, str(v))
+
+        async with session.post(post_url, data=formdata, headers=headers_post, allow_redirects=False) as resp:
+            body = await resp.text()
+            loc = resp.headers.get("Location")
+            status = resp.status
+
+        if status not in (200, 302, 303):
+            _LOGGER.error("LuCI POST failed url=%s status=%s", post_url, status)
+            return False, body
+
+        follow_url = None
         if loc:
+            follow_url = f"{self.base_url}{loc}" if not loc.startswith("http") else loc
+        elif default_follow_url:
+            follow_url = default_follow_url
+
+        if follow_url:
             try:
-                if not loc.startswith("http"):
-                    loc_url = f"{self.base_url}{loc}"
-                else:
-                    loc_url = loc
-                async with session.get(loc_url, headers=headers_get, allow_redirects=True) as _r:
-                    await _r.text()
-            except Exception:
-                pass
-    
-        # Applica: restart firewall (come fa la UI)
-        if token_val:
-            try:
-                svc_url = f"{self.base_url}/cgi-bin/luci/admin/servicectl/restart/firewall"
-                data = {"token": token_val}
-                headers_svc = {
-                    "User-Agent": "hass-cudy-router",
-                    "Accept": "*/*",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Referer": f"{self.base_url}/cgi-bin/luci/admin/setup",
-                    "Origin": self.base_url,
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                }
-                if self.sysauth:
-                    headers_svc["Cookie"] = f"sysauth={self.sysauth}"
-    
-                async with session.post(svc_url, data=data, headers=headers_svc) as _r:
-                    await _r.text()
+                async with session.get(follow_url, headers=headers_get, allow_redirects=True) as resp2:
+                    body = await resp2.text()
             except Exception as e:
-                _LOGGER.debug("VPN restart firewall failed: %s", e)
-    
+                _LOGGER.debug("Follow apply URL failed (%s): %s", follow_url, e)
+
+        return True, body
+
+    async def async_get_vpn_state(self) -> dict[str, bool]:
+        """Ritorna lo stato del WireGuard switch.
+
+        Su alcuni firmware esiste solo la pagina VPN generica: in quel caso
+        WireGuard è ON solo se il toggle generale è 1 e il protocollo corrente
+        è wireguard / wireguards.
+        """
+        ts = int(time.time() * 1000)
+        urls = [
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn?_={ts}",
+        ]
+
+        _, _, form, _ = await self._fetch_luci_form(
+            urls,
+            referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn",
+        )
+
+        enabled_val = self._form_value(form, self._VPN_GENERIC_ENABLED)
+        proto_val = (self._form_value(form, self._VPN_GENERIC_PROTO) or "").strip().lower()
+        if enabled_val is None:
+            raise RuntimeError("VPN enabled field not found")
+
+        return {"wireguard": enabled_val == "1" and proto_val in self._WIREGUARD_PROTO_VALUES}
+
+    async def async_set_vpn(self, enabled: bool) -> bool:
+        """Abilita/disabilita il toggle VPN WireGuard preservando gli altri campi."""
+        ts = int(time.time() * 1000)
+        get_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}"
+
+        html, _, form, _ = await self._fetch_luci_form(
+            [get_url],
+            referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+        )
+
+        token_val = self._form_value(form, "token") or self._extract_token_anywhere(html)
+        fields = self._build_form_fields(form)
+        current_proto = (fields.get(self._VPN_GENERIC_PROTO, "") or "").strip().lower()
+
+        fields["cbi.submit"] = "1"
+        fields["cbi.apply"] = fields.get("cbi.apply", "1")
+        fields["timeclock"] = str(int(time.time()))
+        fields[self._VPN_GENERIC_ENABLED_HELPER] = "1"
+        fields[self._VPN_GENERIC_ENABLED] = "1" if enabled else "0"
+
+        if enabled and current_proto not in self._WIREGUARD_PROTO_VALUES:
+            if "wireguards" in {opt.get("value") for opt in form.find_all("option") if opt.get("value")}:
+                fields[self._VPN_GENERIC_PROTO] = "wireguards"
+            else:
+                fields[self._VPN_GENERIC_PROTO] = "wireguard"
+
+        ok, _ = await self._post_luci_form(
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=",
+            fields,
+            referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+            headers_get_referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+        )
+        if not ok:
+            return False
+
+        if token_val:
+            await self._servicectl_restart("firewall", token_val)
+        return True
+
+    async def async_get_zerotier_state(self) -> dict[str, bool]:
+        """Ritorna lo stato ZeroTier.
+
+        Supporta due famiglie di firmware:
+        1) pagina dedicata zerotier/client
+        2) pagina VPN generica con _proto zerotier/zerotiers
+        """
+        ts = int(time.time() * 1000)
+
+        dedicated_urls = [
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier?embedded=&mvpn=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier?_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotiers?embedded=&mvpn=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotiers?_={ts}",
+        ]
+        try:
+            _, _, form, _ = await self._fetch_luci_form(
+                dedicated_urls,
+                referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier",
+            )
+            enabled_val = self._form_value(form, self._ZEROTIER_DEDICATED_ENABLED)
+            if enabled_val is not None:
+                return {"zerotier": enabled_val == "1"}
+        except Exception:
+            pass
+
+        generic_urls = [
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn?_={ts}",
+        ]
+        _, _, form, _ = await self._fetch_luci_form(
+            generic_urls,
+            referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn",
+        )
+        enabled_val = self._form_value(form, self._VPN_GENERIC_ENABLED)
+        proto_val = (self._form_value(form, self._VPN_GENERIC_PROTO) or "").strip().lower()
+        if enabled_val is None:
+            raise RuntimeError("ZeroTier generic enabled field not found")
+        return {"zerotier": enabled_val == "1" and proto_val in self._ZEROTIER_PROTO_VALUES}
+
+    async def async_set_zerotier(self, enabled: bool) -> bool:
+        """Abilita/disabilita ZeroTier sia su firmware dedicati sia su quelli P4 VPN-generic."""
+        ts = int(time.time() * 1000)
+
+        # ----- prova 1: pagina dedicata ZeroTier -----
+        dedicated_urls = [
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier?embedded=&mvpn=&_={ts}",
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotiers?embedded=&mvpn=&_={ts}",
+        ]
+        try:
+            html, _, form, used_url = await self._fetch_luci_form(
+                dedicated_urls,
+                referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+            )
+            if self._form_value(form, self._ZEROTIER_DEDICATED_ENABLED) is not None:
+                token_val = self._form_value(form, "token") or self._extract_token_anywhere(html)
+                fields = self._build_form_fields(form)
+                fields["cbi.submit"] = "1"
+                fields["cbi.apply"] = fields.get("cbi.apply", "1")
+                fields["timeclock"] = str(int(time.time()))
+                fields[self._ZEROTIER_DEDICATED_ENABLED_HELPER] = "1"
+                fields[self._ZEROTIER_DEDICATED_ENABLED] = "1" if enabled else "0"
+
+                clean_url = used_url.split("&_=" )[0] if "&_=" in used_url else used_url.split("?_=")[0]
+                default_follow = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/apply/zerotier"
+                ok, _ = await self._post_luci_form(
+                    clean_url,
+                    fields,
+                    referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+                    headers_get_referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+                    default_follow_url=default_follow,
+                )
+                if not ok:
+                    return False
+                if token_val:
+                    await self._servicectl_restart("zerotier,firewall", token_val)
+                return True
+        except Exception as e:
+            _LOGGER.debug("Dedicated ZeroTier flow unavailable, fallback to generic VPN flow: %s", e)
+
+        # ----- prova 2: pagina VPN generica (P4 5G SIM) -----
+        generic_get_url = f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}"
+        html, _, form, _ = await self._fetch_luci_form(
+            [generic_get_url],
+            referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+        )
+        token_val = self._form_value(form, "token") or self._extract_token_anywhere(html)
+        fields = self._build_form_fields(form)
+
+        current_proto = (fields.get(self._VPN_GENERIC_PROTO, "") or "").strip().lower()
+        option_values = {opt.get("value") for opt in form.find_all("option") if opt.get("value")}
+
+        fields["cbi.submit"] = "1"
+        fields["cbi.apply"] = fields.get("cbi.apply", "1")
+        fields["timeclock"] = str(int(time.time()))
+        fields[self._VPN_GENERIC_ENABLED_HELPER] = "1"
+        fields[self._VPN_GENERIC_ENABLED] = "1" if enabled else "0"
+
+        if current_proto not in self._ZEROTIER_PROTO_VALUES:
+            # P4 mostra spesso zerotiers = master e zerotier = slave.
+            if "zerotiers" in option_values:
+                fields[self._VPN_GENERIC_PROTO] = "zerotiers"
+            elif "zerotier" in option_values:
+                fields[self._VPN_GENERIC_PROTO] = "zerotier"
+
+        ok, _ = await self._post_luci_form(
+            f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=",
+            fields,
+            referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+            headers_get_referer=f"{self.base_url}/cgi-bin/luci/admin/setup",
+        )
+        if not ok:
+            return False
+
+        if token_val:
+            await self._servicectl_restart("zerotier,firewall", token_val)
         return True
 
     # ------------------------------------------------------------------
