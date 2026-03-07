@@ -761,18 +761,19 @@ class CudyClient:
         return True, body
 
     async def async_get_vpn_state(self) -> dict[str, bool]:
-        """Ritorna lo stato reale del WireGuard switch.
+        """Ritorna lo stato del WireGuard switch.
 
         Regola importante:
-        - se il firmware espone una pagina ZeroTier dedicata e ZeroTier è attivo,
-          WireGuard deve risultare False anche se la pagina VPN generica conserva
-          un vecchio proto=wireguard.
-        - solo se ZeroTier dedicato non è attivo si può usare il backend VPN
-          generico per capire se WireGuard è acceso.
+        - sui firmware con pagina ZeroTier dedicata (es. M3000), se ZeroTier è attivo
+          allora WireGuard deve risultare OFF anche se la pagina VPN generica è rimasta
+          su un vecchio proto wireguard.
+        - sui firmware shared-backend (es. P4), WireGuard è ON solo se enabled=1 e
+          il protocollo corrente è wireguard / wireguards.
         """
         ts = int(time.time() * 1000)
 
-        # Firmware tipo M3000: ZeroTier dedicato separato dal blocco VPN generico.
+        # 1) Priorità alla pagina ZeroTier dedicata: se esiste ed è attiva,
+        #    WireGuard deve essere forzato OFF.
         dedicated_urls = [
             f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier?embedded=&mvpn=&_={ts}",
             f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier?_={ts}",
@@ -784,13 +785,13 @@ class CudyClient:
                 dedicated_urls,
                 referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier",
             )
-            zt_enabled_val = (self._form_value(zt_form, self._ZEROTIER_DEDICATED_ENABLED) or "").strip()
-            if zt_enabled_val == "1":
+            zt_enabled = self._form_value(zt_form, self._ZEROTIER_DEDICATED_ENABLED)
+            if zt_enabled == "1":
                 return {"wireguard": False}
         except Exception:
             pass
 
-        # Firmware tipo P4 o fallback generico.
+        # 2) Fallback alla pagina VPN generica.
         urls = [
             f"{self.base_url}/cgi-bin/luci/admin/network/vpn/config?nomodal=&_={ts}",
             f"{self.base_url}/cgi-bin/luci/admin/network/vpn?_={ts}",
@@ -803,12 +804,12 @@ class CudyClient:
 
         enabled_val = (self._form_value(form, self._VPN_GENERIC_ENABLED) or "").strip()
         proto_val = (self._form_value(form, self._VPN_GENERIC_PROTO) or "").strip().lower()
-        if not enabled_val:
-            raise RuntimeError("VPN enabled field not found")
+
         if enabled_val != "1":
             return {"wireguard": False}
-
-        return {"wireguard": proto_val in self._WIREGUARD_PROTO_VALUES}
+        if proto_val in self._WIREGUARD_PROTO_VALUES:
+            return {"wireguard": True}
+        return {"wireguard": False}
 
     async def async_set_vpn(self, enabled: bool) -> bool:
         """Abilita/disabilita il toggle VPN WireGuard preservando gli altri campi."""
@@ -869,8 +870,8 @@ class CudyClient:
                 dedicated_urls,
                 referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn/zerotier",
             )
-            enabled_val = (self._form_value(form, self._ZEROTIER_DEDICATED_ENABLED) or "").strip()
-            if enabled_val:
+            enabled_val = self._form_value(form, self._ZEROTIER_DEDICATED_ENABLED)
+            if enabled_val is not None:
                 return {"zerotier": enabled_val == "1"}
         except Exception:
             pass
@@ -883,13 +884,11 @@ class CudyClient:
             generic_urls,
             referer=f"{self.base_url}/cgi-bin/luci/admin/network/vpn",
         )
-        enabled_val = (self._form_value(form, self._VPN_GENERIC_ENABLED) or "").strip()
+        enabled_val = self._form_value(form, self._VPN_GENERIC_ENABLED)
         proto_val = (self._form_value(form, self._VPN_GENERIC_PROTO) or "").strip().lower()
-        if not enabled_val:
+        if enabled_val is None:
             raise RuntimeError("ZeroTier generic enabled field not found")
-        if enabled_val != "1":
-            return {"zerotier": False}
-        return {"zerotier": proto_val in self._ZEROTIER_PROTO_VALUES}
+        return {"zerotier": enabled_val == "1" and proto_val in self._ZEROTIER_PROTO_VALUES}
 
     async def async_set_zerotier(self, enabled: bool) -> bool:
         """Abilita/disabilita ZeroTier sia su firmware dedicati sia su quelli P4 VPN-generic."""
