@@ -93,7 +93,7 @@ class CudyClient:
 
         for scheme in schemes:
             base = f"{scheme}://{self._host}"
-            login_url = f"{base}/cgi-bin/luci"
+            login_url = f"{base}/cgi-bin/luci/"
 
             headers_get = {
                 "User-Agent": "hass-cudy-router",
