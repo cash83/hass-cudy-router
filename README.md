@@ -1,3 +1,14 @@
+> ## ⚠️ This repository is no longer maintained
+>
+> It has been archived and is kept read-only for reference. The last release here is **v1.0.9** (June 2026).
+>
+> **Development continues at [cash83/cudy-router-ha-control](https://github.com/cash83/cudy-router-ha-control)**, which is actively maintained and considerably further along — mesh node telemetry, SMS, VPN and multi-WAN support, and a test suite.
+>
+> If you installed this one through HACS as a custom repository, remove it and add the new one instead:
+> `https://github.com/cash83/cudy-router-ha-control` (category: *Integration*).
+
+---
+
 # Cudy Router Integration for Home Assistant
 
 A modern, fully UI-configured Home Assistant integration for Cudy routers.
